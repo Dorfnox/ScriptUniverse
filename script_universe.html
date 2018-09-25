@@ -340,8 +340,8 @@
 			}
 
 			// update the node and link selections
-			node = updateNodes(matchingNodes);
 			link = updateLinks(matchingLinks);
+			node = updateNodes(matchingNodes);
 			updateGroups();
 			updateSimulation(matchingNodes);
 
@@ -392,7 +392,6 @@
 		}
 
 		function onNodeOver(data) {
-
 			if (dragActive === false) {
 				// Dim nodes and links that are not part of the current group
 				nodeGroupInverse.get(data.group).attr('opacity', 0.5);
@@ -412,7 +411,6 @@
 		}
 
 		function onNodeOut(data) {
-
 			if (dragActive === false) {
 				// Undim nodes and links that are not part of the currect group
 				nodeGroupInverse.get(data.group).attr('opacity', 1.0);
@@ -424,7 +422,6 @@
 					.duration(200)
 					.style("opacity", 0)
 			}
-
 		}
 
 		// Drag events
@@ -460,10 +457,10 @@
 			var nodeEnter = myNodes.enter().append('path')
 				.attr('d', attrPathType)
 				.attr('class', 'node')
-				.on('click', onNodeClick)		// On object click
-				.on('mouseover', onNodeOver)	// When a node is moused over
-				.on('mouseout', onNodeOut)		// On node MouseOut, reset the MouseOver stufff:
-				.call(d3.drag()					// Applying drag to nodes
+				.on('click', onNodeClick)
+				.on('mouseover', onNodeOver)
+				.on('mouseout', onNodeOut)
+				.call(d3.drag()
 					.on('start', dragStart)
 					.on('drag', dragged)
 					.on('end', dragEnd))
@@ -473,6 +470,7 @@
 		}
 
 		function updateLinks(newLinks) {
+			// Update, Enter, Exit pattern
 			var myLinks = svg.selectAll('.link').data(newLinks);
 			var linkEnter = myLinks.enter().append('line')
 				.attr('class', 'link')
