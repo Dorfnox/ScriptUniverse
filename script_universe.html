@@ -1,0 +1,642 @@
+<html>
+
+<head>
+	<title>Script Universe</title>
+
+	<!-- d3 3.3.10 -->
+	<script type='text/javascript' src='d3.js'></script>
+	<!-- data.js -->
+	<script type='text/javascript' src='data.js'></script>
+	<!-- fm.js -->
+	<script type='text/javascript' src='fm.js'></script>
+
+	<style type='text/css'>
+		svg {
+			position: absolute;
+			z-index: 1;
+			width: 100%;
+			height: 100%;
+		}
+
+		.node-group path {
+			stroke: #fff;
+			stroke-width: 2.5px;
+		}
+
+		body {
+			margin: 0;
+			overflow: hidden;
+			font: 12px arial;
+		}
+
+		#controls {
+			position: absolute;
+			display: flex;
+			justify-content: center;
+			align-items: center;
+			flex-direction: row;
+			flex-wrap: wrap;
+			padding: 5px;
+			width: 100%;
+			z-index: 2;
+			background: rgba(12, 214, 62, 0.123);
+			border-bottom: 0.5px solid rgba(128, 128, 128, 0.541);
+		}
+
+		/* ToolTip */
+		div#tooltip {	
+			position: absolute;
+			text-align: center;
+			padding: 2px;	
+			font: 12px sans-serif;
+			background: rgb(179, 209, 248);
+			border: 1px solid white;
+			padding: 5px;
+			border-radius: 6px;
+			pointer-events: none;
+			z-index: 3;
+		}
+
+		/* Search Controls */
+		.search-container {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			align-items: center;
+			/* border-right: 0.5px solid rgba(128, 128, 128, 0.541); */
+			padding-left: 5px;
+			padding-right: 5px;
+			width: 40%;
+		}
+		.search-row {
+			display: flex;
+			flex-direction: row;
+			align-items: center;
+			padding-top: 5px;
+			padding-bottom: 5px;
+			width: 100%;
+		}
+		.search-input {
+			height: 100%;
+			min-width: 40%;
+			width: 100%;
+		}
+		.search-button {
+			height: 100%;
+			margin-left: 2%;
+			border-radius: 3px;
+			background-color: rgb(213, 212, 255)
+		}
+
+		/* Compatability Controls */
+		.compatibility-container {
+			display: flex;
+			flex-direction: row;
+			flex-wrap: wrap;
+			align-items: center;
+			padding-left: 5px;
+			padding-right: 5px;
+		}
+		.compatibility-list {
+			height: 100%;
+		}
+
+		#chart {
+			height: 100%;
+			width: 100%;
+		}
+
+		#chart svg {
+			height: 100%;
+			width: 100%;
+		}
+
+		/* The Selection Script 'Watch' list */
+		#selection-list {
+			position: absolute;
+			top: 10%;
+			display: flex;
+			flex-direction: column;
+			background-color: white;
+			z-index: 3;
+		}
+
+		#selection-list .selection-item {
+			display: flex;
+			align-items: center;
+			cursor: pointer;
+			max-width: 180px;
+			padding: 5px;
+			margin: 10px;
+			border-bottom: 1px solid rgb(192, 192, 192);
+			z-index: 3;
+		}
+
+		/* Shadow in requires different definitions for differect browsers */
+		.shadow {
+			-webkit-box-shadow: 3px 3px 8px 0px rgba(0,0,0, .15);	/* Safari 4+ */
+			   -moz-box-shadow: 3px 3px 8px 0px rgba(0,0,0, .15);	/* Fx 5+ */
+				 -o-box-shadow: 3px 3px 8px 0px rgba(0,0,0, .15);	/* Opera 12+ */
+					box-shadow: 3px 3px 8px 0px rgba(0,0,0, .15);	/* IE 10+, Fx 29+ */
+		}
+
+	</style>
+</head>
+
+
+<!-- Main HTML -->
+<body>
+	<div id='chart'>
+		<div id='controls'>
+			<div class='search-container'>
+				<div class='search-row'>
+					<input class='search-input' type='text' placeholder="...search all objects"/>
+					<button class='search-button' type='button'>Search</button>
+				</div>
+				<div class="search-row">
+					<input class='search-something' name='dosomething' type='checkbox'>Do something
+				</div>
+			</div>
+			<div class='compatibility-container'>
+				Compatibility:
+				<select id='compatibility-list'>
+					<option value='all'>All</option>
+					<option disabled='disabled'>----</option>
+					<option value='M'>Macintosh</option>
+					<option value='W'>Windows</option>
+					<option value='I'>iOS</option>
+					<option value='S'>Server</option>
+					<option value='D'>WebDirect</option>
+					<option value='C'>Custom Web Publishing</option>
+				</select><br />
+			</div>
+		</div>
+		<div id='selection-list'>
+			<span style='text-align: center;font-size: 1.5em;'>Script Tracker</span>
+		</div>
+		<div id='tooltip'></div>
+	</div>
+</body>
+
+
+
+<script type='text/javascript'>
+
+	// Anonymous Function start!
+	(function () {
+
+		// Error handling -----------------------------------------------------
+
+		if (!json.nodes || json.nodes.length === 0) {
+			return ; // No data to process
+		}
+
+		// Initializing filemaker functions -----------------------------------
+
+		var db = new FM()
+			.setFileName('InspectorPro')
+			.setIsHosted(false);
+
+		var fmScript = db.script('b d3 . link_to_item');
+
+		// Initializing variables ---------------------------------------------
+	
+		var width = window.innerWidth,
+			height = window.innerHeight,
+			halfWidth = width / 2,
+			halfHeight = height / 2,
+			x = 0,
+			tmpX = 0,
+			y = 0,
+			tmpY = 0,
+			dragActive = false,
+			nodes = json.nodes,
+			links = json.links,
+			lastSearch = '';
+
+		var nodeGroup = new Map(),
+			nodeGroupInverse = new Map(),
+			linkGroup = new Map(),
+			linkGroupInverse = new Map();
+
+		var color = d3.scaleOrdinal(d3.schemePaired);
+
+		var sizescale = d3.scaleSqrt()
+			.domain([0, d3.max(nodes, function (d) { return d.size })])
+			.range([0.3, 2.0]);
+
+		var transformCalc = function(data, optionalFactor) {
+			var scale = sizescale(data.size);
+			if (optionalFactor) scale *= optionalFactor;
+			return 'translate(' + (data.x - scale * 17) + ',' + (data.y - scale * 17) + ')' + ' scale(' + scale + ')';
+		}
+
+		function attrPathType(d, s) {
+			var symbols = {
+				'circle': 'M16,1.466C7.973,1.466,1.466,7.973,1.466,16c0,8.027,6.507,14.534,14.534,14.534c8.027,0,14.534-6.507,14.534-14.534C30.534,7.973,24.027,1.466,16,1.466z',
+				'square': 'M0,0h31v31h-31z',
+				'parallelogram': 'm7.47255,1.48611l24.45329,0l-7.60769,29.168l-24.45329,0l7.60769,-29.168z',
+				'upside_down_triangle': 'm0.73434,7.30112l12.62465,21.86412c1.61153,2.79333 4.2486,2.79333 5.86012,0l12.62465,-21.86607c1.61349,-2.79137 0.29302,-5.07487 -2.93006,-5.07487l-25.2493,0c-3.22502,0.00195 -4.54356,2.28544 -2.93006,5.07682z',
+				'diamond': 'M15.5,0 L31,15.5 L15.5,30.5 L0,15.5Z',
+				'plus': 'm30.79918,10.34395l-10.31033,0l0,-10.31033l-10.30723,0l0,10.31033l-10.31187,0l0,10.30878l10.31187,0l0,10.31033l10.30723,0l0,-10.31033l10.31033,0l0,-10.30878z'
+			};
+			var symbolMap = {
+				'Script': 'circle',
+				'Field': 'square',
+				'Group Button': 'square',
+				'Popover': 'square',
+				'Slide Control': 'square',
+				'Button': 'square',
+				'File Option': 'plus',
+				'Layout': 'upside_down_triangle',
+				'Tab Control': 'square',
+				'Custom Menu Item': 'diamond',
+				'Portal': 'parallelogram',
+			};
+			return symbols[symbolMap[d.object]];//symbols['upside_down_triangle'];
+		}
+
+		// Search event initialization
+		document.getElementsByClassName("search-button")[0].addEventListener('click', function(){
+			var input = document.getElementsByClassName("search-input")[0].value;
+			inputSearch(input);
+		});
+		document.getElementsByClassName("search-input")[0].addEventListener('keyup', function(e){
+			if (e.keyCode === 13 /* Return Key */) inputSearch(e.srcElement.value);
+		});
+
+
+
+		// Initializing forces ----------------------------------------------------------------------------------------
+
+		var simulation = d3.forceSimulation(nodes),	// Adds nodes to Force simulation
+			alphaTarget = 0.3,						// That 'nudge' when a force is applied
+			strength = 0.10,						// The 'Strength of different forces
+
+			forceX = 								// Pushes towards width divided by 2
+				d3.forceX(function (d) {
+					return halfWidth;
+				}).strength(strength),
+
+			forceY =								// Pushes towards height divided by 2
+				d3.forceY(function(d) {
+					return halfHeight;
+				}).strength(strength),
+
+			forceCollide =							// Prevents objects from colliding
+				d3.forceCollide(function (d) {
+					return sizescale(d.size) * 17;	// arbitrarily multiply
+				}),
+
+			forceLink =								// Creates forces between linked nodes
+				d3.forceLink(links),
+
+			forceManyBody =							// Force 'betweeen' objects
+				d3.forceManyBody()
+				.strength(-100);
+
+		simulation									// Builds Initial Forces onto the simulation
+			.force('x', forceX)
+			.force('y', forceY)
+			.force('collide', forceCollide)
+			.force('link', forceLink)
+			.force('manyBody', forceManyBody)
+
+
+
+		// EVENT FUNCTION DECLARATIONS
+		// ------------------------------------------------------------------------------------------------------------
+
+		function inputSearch(input) {
+			var matchingNodes = null,
+				matchingLinks = null;
+			
+			input = input.toLowerCase();
+
+			// NEW Search
+			if (input.length !== 0 && lastSearch !== input) {
+				// search for all nodes where the 'name' matches the input.
+				matchingNodes = nodes.filter(function(d){
+					return d.name.toLowerCase().includes(input)
+				});
+				// search for all links that have both a source and target in the matchingNodes
+				matchingLinks = links.filter(function(l){
+
+					var matchingSource = matchingNodes.filter(function(m){ return l.source.id === m.id });
+					var matchingTarget = matchingNodes.filter(function(m){ return l.target.id === m.id });
+
+					if (matchingSource.length !== 0 && matchingTarget.length !== 0) return true;
+					return false;
+				});
+			}
+			// CLEAR Search
+			else if (input.length === 0 && lastSearch !== '') {
+				matchingNodes = nodes;
+				matchingLinks = links;
+			}
+			// DUPLICATE search
+			else {
+				return ;
+			}
+
+			// update the node and link selections
+			node = updateNodes(matchingNodes);
+			link = updateLinks(matchingLinks);
+			updateGroups();
+			updateSimulation(matchingNodes);
+
+			// Update global last search
+			lastSearch = input;
+		}
+
+		function onNodeClick(data) {
+			// console.log("NODE data\n", data);							// the actual node data
+			// console.log("NODE this\n", this);							// the element in the DOM
+			// console.log('NODE d3.select(this)\n\n', d3.select(this));	// The 'Selection' Group of elements from the DOM for use by d3 Methods
+
+			var idLabel = 'sl-' + data.id;
+
+			// Check if item was already added to the selection list
+			if (selectionMain.select('#' + idLabel).empty() === false) return;
+
+			// Transition in if there is nothing in selectionMain
+			if (selectionMain.selectAll('.selection-item').empty() === true) {
+				selectionMain.transition().duration(200).style('opacity', 0.9);
+			}
+
+			// Add, Transition in, and run FM script on click for new element
+			var newElem = selectionMain.append('div').attr('class', 'selection-item')
+
+			newElem.attr('id', idLabel).style('opacity', 0).html(data.name)
+
+			newElem.transition().duration(200).style('opacity', 1.0)
+
+			// Highlight selected node
+			d3.select(this).attr('stroke', 'red').attr('stroke-width', '2.0px');
+
+			// Add fmScript to selection-item
+			newElem.on('click', function(d) {
+				fmScript.addVariable({
+					db:   data.db,
+					id:   data.id,
+					area: data.area,
+				});
+				fmScript.run();
+			});
+		}
+
+		function onLinkClick(data) {
+			console.log("LINK data\n", data);
+			console.log("LINK this\n", this);
+			console.log('LINK d3.select(this)\n\n', d3.select(this));
+		}
+
+		function onNodeOver(data) {
+
+			if (dragActive === false) {
+				// Dim nodes and links that are not part of the current group
+				nodeGroupInverse.get(data.group).attr('opacity', 0.5);
+				// nodeGroupInverse.get(data.group).transition().duration(100).attr('opacity', 0.25);
+				linkGroupInverse.get(data.group).attr('opacity', 0.5);
+				// linkGroupInverse.get(data.group).transition().duration(100).attr('opacity', 0.25);
+
+				tooltip
+					.html(data.name + "<br/>")
+					.style("left", (d3.event.pageX) + "px")
+					.style("top", (d3.event.pageY - 28) + "px")
+				tooltip
+					.transition()
+					.duration(200)
+					.style("opacity", .9)
+			}
+		}
+
+		function onNodeOut(data) {
+
+			if (dragActive === false) {
+				// Undim nodes and links that are not part of the currect group
+				nodeGroupInverse.get(data.group).attr('opacity', 1.0);
+				// nodeGroupInverse.get(data.group).transition().duration(100).attr('opacity', 1.0);
+				linkGroupInverse.get(data.group).attr('opacity', 1.0);
+				// linkGroupInverse.get(data.group).transition().duration(100).attr('opacity', 1.0);
+				tooltip
+					.transition()
+					.duration(200)
+					.style("opacity", 0)
+			}
+
+		}
+
+		// Drag events
+		function dragStart(d) {
+			if (!d3.event.active) simulation.alphaTarget(alphaTarget).restart();		// Restart simulation
+			dragActive = true;
+			d.fx = d3.event.x;			// fx, or fixed x, 'overwrites' normal x and y positions
+			d.fy = d3.event.y;
+			node.attr('opacity', 1.0);	// reset all node and link opacities
+			link.attr('opacity', 1.0);
+		}
+
+		function dragged(d) {
+			d.fx = d3.event.x;
+			d.fy = d3.event.y;
+		}
+
+		function dragEnd(d) {
+			if (!d3.event.active) simulation.alphaTarget(0);
+			dragActive = false;
+			d.fx = null;
+			d.fy = null;
+		}
+
+
+
+		// UPDATE FUNCTION DECLARATIONS
+		// ------------------------------------------------------------------------------------------------------------
+
+		function updateNodes(newNodes) {
+			// Update, Enter, Exit pattern
+			var myNodes = svg.selectAll('.node').data(newNodes);
+			var nodeEnter = myNodes.enter().append('path')
+				.attr('d', attrPathType)
+				.attr('class', 'node')
+				.on('click', onNodeClick)		// On object click
+				.on('mouseover', onNodeOver)	// When a node is moused over
+				.on('mouseout', onNodeOut)		// On node MouseOut, reset the MouseOver stufff:
+				.call(d3.drag()					// Applying drag to nodes
+					.on('start', dragStart)
+					.on('drag', dragged)
+					.on('end', dragEnd))
+			myNodes.exit().remove();
+			myNodes = nodeEnter.merge(myNodes);
+			return myNodes;
+		}
+
+		function updateLinks(newLinks) {
+			var myLinks = svg.selectAll('.link').data(newLinks);
+			var linkEnter = myLinks.enter().append('line')
+				.attr('class', 'link')
+				.on('click', onLinkClick);
+			myLinks.exit().remove();
+			myLinks = linkEnter.merge(myLinks);
+			return myLinks;
+		}
+
+		// Main update function that sorts all new nodes and links into Groups.
+		function updateGroups() {
+
+			var linkGroupId = 111111;
+
+			// Initializing the nodes and links with extra information
+			node.each(function(d){
+				d.group = linkGroupId++;
+			});
+			link.each(function(l){
+				l.group = linkGroupId++
+			});
+
+			// Declaration of BFS function that adds all connected groups to a single node
+			function virallyInfect(linkItem, groupId) {
+				var queue = [];
+				var visited = new Map();
+
+				// Push the very first item to the queue
+				queue.push(linkItem);
+
+				while (queue.length !== 0) {
+					// Pop off the next queue'd item
+					linkItem = queue.shift();
+
+					// Check that the item hasn't been used yet,
+					// AND the groups don't already match -
+					// (this tells us that a previous call to virallyInfect has run on these nodes/links)
+					if (visited.has(linkItem) === false && linkItem.group != linkItem.source.group) {
+
+						// Set ID's --- MOST IMPORTANT PART
+						linkItem.group = groupId;
+						linkItem.source.group = groupId;
+						linkItem.target.group = groupId;
+
+						link.each(function(l) {
+							if (l.target.id === linkItem.source.id ||
+								l.target.id === linkItem.target.id ||
+								l.source.id === linkItem.source.id ||
+								l.source.id === linkItem.target.id ) queue.push(l) // Push links to queue
+						});
+						// Set that linkItem as having been visited
+						visited.set(linkItem, null);
+					}
+				}
+				// Clean map
+				delete visited;
+			}
+
+			// Run the above function for EACH item in the links
+			link.each(function(l) { virallyInfect(l, linkGroupId++) });
+
+			// Clear global maps
+			nodeGroup.clear();
+			linkGroup.clear();
+			nodeGroupInverse.clear();
+			linkGroupInverse.clear();
+
+			// Create Node / Link and Inverse Node / Link selection mappings for quick access (this avoids filtering)
+			linkGroupId = 1;
+			node.each(function(d) {
+				// Add entire group selection to the regular nodeGroup
+				if (nodeGroup.has(d.group) === false) {
+					// Collect selection groups
+					var nodeSelection = node.filter(function(f) { return f.group === d.group });
+					var inverseNodeSelection = node.filter(function(f) { return f.group !== d.group });
+					var linkSelection = link.filter(function(f) { return f.group === d.group });
+					var inverseLinkSelection = link.filter(function(f) { return f.group !== d.group });
+
+					// Reset the ids for proper selection
+					nodeSelection.each(function(f){ f.group = linkGroupId });
+					linkSelection.each(function(f){ f.group = linkGroupId });
+
+					// Add all to mapping
+					nodeGroup.set(linkGroupId, nodeSelection);
+					linkGroup.set(linkGroupId, linkSelection);
+					nodeGroupInverse.set(linkGroupId, inverseNodeSelection);
+					linkGroupInverse.set(linkGroupId, inverseLinkSelection);
+
+					// Increment Id
+					++linkGroupId;
+				}
+			});
+
+			// Other Attribute Initialization that depends on grouping
+			node.attr('fill', function(d){ return color(d.group % 10) });
+
+			link.attr('stroke', function(l){ return color(l.group % 10) })
+				.attr('stroke-opacity', '1')
+				.attr('stroke-width', function(d){ return '0.5px' })
+		};
+
+
+
+		// SIMULATION FUNCTION DECLARATIONS
+		// ------------------------------------------------------------------------------------------------------------
+
+		function updateSimulation(nodeSet) {
+			simulation.nodes(nodeSet).on('tick', ticked); // starts simulation with given nodeSet
+			simulation.alpha(alphaTarget).restart();
+		}
+
+		function ticked() { // Simulation is like a clock - it ticks, it ticks, it ticks
+			link
+				.attr('x1', function(d){ return d.source.x })
+				.attr('x2', function(d){ return d.target.x })
+				.attr('y1', function(d){ return d.source.y })
+				.attr('y2', function(d){ return d.target.y })
+
+			node
+				.attr('transform', function(d) { return transformCalc(d) })
+				.attr('x', function(d){ return d.x })
+				.attr('y', function(d){ return d.y })
+		}
+
+
+
+		// SVG CONTAINER, NODE and LINK INITIALIZATION
+		// ------------------------------------------------------------------------------------------------------------
+
+		// Creating the svg container
+		var svg = d3.select('#chart')
+			.append('svg')
+			.attr('width', width)
+			.attr('height', height)
+			.call(d3.zoom()
+				.on('zoom', function(d){ svg.attr('transform', d3.event.transform) }))
+			.append('g')
+			.attr('transform', 'translate(0,0)')
+
+		// Creating Links (Created first so that lines appear underneath nodes themselves)
+		var link = updateLinks(links);
+
+		// Creating Nodes
+		var node = updateNodes(nodes);
+
+		// Defining the tooltip
+		var tooltip = d3.select('#tooltip').style('opacity', 0);
+
+		// Defining the selection list and items
+		var selectionMain = d3.select('#selection-list').style('opacity', 0).attr('class', 'shadow');
+
+		// Call to update the inital groups
+		updateGroups();
+
+		// Call to update the simulation with initial dataset
+		updateSimulation(nodes);
+
+	})();
+	// Anonymous Function end!
+
+
+
+</script>
+
+</html>
+
+<!-- Built by Brendan Pierce 😎 -->
