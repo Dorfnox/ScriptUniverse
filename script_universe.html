@@ -372,6 +372,7 @@
 			newElem.transition().duration(200).style('opacity', 1.0)
 
 			// Highlight selected node
+			data.selected = true;
 			d3.select(this).attr('stroke', 'red').attr('stroke-width', '2.0px');
 
 			// Add fmScript to selection-item
@@ -426,7 +427,6 @@
 
 		// Drag events
 		function dragStart(d) {
-			if (!d3.event.active) simulation.alphaTarget(alphaTarget).restart();		// Restart simulation
 			dragActive = true;
 			d.fx = d3.event.x;			// fx, or fixed x, 'overwrites' normal x and y positions
 			d.fy = d3.event.y;
@@ -435,6 +435,7 @@
 		}
 
 		function dragged(d) {
+			if (!d3.event.active) simulation.alphaTarget(alphaTarget).restart();		// Restart simulation
 			d.fx = d3.event.x;
 			d.fy = d3.event.y;
 		}
@@ -565,7 +566,10 @@
 			});
 
 			// Other Attribute Initialization that depends on grouping
-			node.attr('fill', function(d){ return color(d.group % 10) });
+			node.each(function(d){
+				if (d.selected === true) d3.select(this).attr('stroke', 'red').attr('stroke-width', '2.0px');
+				d3.select(this).attr('fill', function(d){ return color(d.group % 10) });
+			});
 
 			link.attr('stroke', function(l){ return color(l.group % 10) })
 				.attr('stroke-opacity', '1')
