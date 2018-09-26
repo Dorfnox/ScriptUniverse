@@ -3,7 +3,7 @@
 <head>
 	<title>Script Universe</title>
 
-	<!-- d3 3.3.10 -->
+	<!-- d3 5.7 -->
 	<script type='text/javascript' src='d3.js'></script>
 	<!-- data.js -->
 	<script type='text/javascript' src='data.js'></script>
@@ -11,6 +11,11 @@
 	<script type='text/javascript' src='fm.js'></script>
 
 	<style type='text/css'>
+		#chart {
+			height: 100%;
+			width: 100%;
+		}
+
 		svg {
 			position: absolute;
 			z-index: 1;
@@ -44,7 +49,7 @@
 		}
 
 		/* ToolTip */
-		div#tooltip {	
+		div #tooltip {	
 			position: absolute;
 			text-align: center;
 			padding: 2px;	
@@ -101,16 +106,6 @@
 			height: 100%;
 		}
 
-		#chart {
-			height: 100%;
-			width: 100%;
-		}
-
-		#chart svg {
-			height: 100%;
-			width: 100%;
-		}
-
 		/* The Selection Script 'Watch' list */
 		#selection-list {
 			position: absolute;
@@ -119,6 +114,8 @@
 			flex-direction: column;
 			background-color: white;
 			z-index: 3;
+			max-height: 80%;
+			overflow-y: scroll;
 		}
 
 		#selection-list .selection-item {
@@ -130,6 +127,8 @@
 			margin: 10px;
 			border-bottom: 1px solid rgb(192, 192, 192);
 			z-index: 3;
+			overflow-y: scroll;
+
 		}
 
 		/* Shadow in requires different definitions for differect browsers */
@@ -154,7 +153,7 @@
 					<button class='search-button' type='button'>Search</button>
 				</div>
 				<div class="search-row">
-					<input class='search-something' name='dosomething' type='checkbox'>Do something
+					<input id='hover-grouping' name='hovergrouping' type='checkbox' checked>Hover shows closest nodes
 				</div>
 			</div>
 			<div class='compatibility-container'>
@@ -169,6 +168,9 @@
 					<option value='D'>WebDirect</option>
 					<option value='C'>Custom Web Publishing</option>
 				</select><br />
+			</div>
+			<div class='force-container'>
+
 			</div>
 		</div>
 		<div id='selection-list'>
@@ -205,14 +207,14 @@
 			height = window.innerHeight,
 			halfWidth = width / 2,
 			halfHeight = height / 2,
-			x = 0,
-			tmpX = 0,
-			y = 0,
-			tmpY = 0,
 			dragActive = false,
 			nodes = json.nodes,
-			links = json.links,
-			lastSearch = '';
+			links = json.links.filter(function(d) { return d.source !== null && d.target !== null })
+
+		var settings = {
+			lastSearch: '',
+			linkStrokeWidth: 0.5,
+		}
 
 		var nodeGroup = new Map(),
 			nodeGroupInverse = new Map(),
@@ -225,10 +227,10 @@
 			.domain([0, d3.max(nodes, function (d) { return d.size })])
 			.range([0.3, 2.0]);
 
-		var transformCalc = function(data, optionalFactor) {
-			var scale = sizescale(data.size);
+		var transformCalc = function(d, optionalFactor) {
+			var scale = sizescale(d.size);
 			if (optionalFactor) scale *= optionalFactor;
-			return 'translate(' + (data.x - scale * 17) + ',' + (data.y - scale * 17) + ')' + ' scale(' + scale + ')';
+			return 'translate(' + (d.x - scale * 17) + ',' + (d.y - scale * 17) + ')' + ' scale(' + scale + ')';
 		}
 
 		function attrPathType(d, s) {
@@ -256,7 +258,11 @@
 			return symbols[symbolMap[d.object]];//symbols['upside_down_triangle'];
 		}
 
-		// Search event initialization
+
+
+		// Dom event initialization -----------------------------------------------------------------------------------
+
+		// search functionality
 		document.getElementsByClassName("search-button")[0].addEventListener('click', function(){
 			var input = document.getElementsByClassName("search-input")[0].value;
 			inputSearch(input);
@@ -266,12 +272,11 @@
 		});
 
 
-
 		// Initializing forces ----------------------------------------------------------------------------------------
 
 		var simulation = d3.forceSimulation(nodes),	// Adds nodes to Force simulation
 			alphaTarget = 0.3,						// That 'nudge' when a force is applied
-			strength = 0.10,						// The 'Strength of different forces
+			strength = 0.30,						// The 'Strength of different forces
 
 			forceX = 								// Pushes towards width divided by 2
 				d3.forceX(function (d) {
@@ -285,7 +290,7 @@
 
 			forceCollide =							// Prevents objects from colliding
 				d3.forceCollide(function (d) {
-					return sizescale(d.size) * 17;	// arbitrarily multiply
+					return sizescale(d.size) * 16;	// arbitrarily multiply
 				}),
 
 			forceLink =								// Creates forces between linked nodes
@@ -293,7 +298,7 @@
 
 			forceManyBody =							// Force 'betweeen' objects
 				d3.forceManyBody()
-				.strength(-100);
+				.strength(-200);
 
 		simulation									// Builds Initial Forces onto the simulation
 			.force('x', forceX)
@@ -314,7 +319,7 @@
 			input = input.toLowerCase();
 
 			// NEW Search
-			if (input.length !== 0 && lastSearch !== input) {
+			if (input.length !== 0 && settings.lastSearch !== input) {
 				// search for all nodes where the 'name' matches the input.
 				matchingNodes = nodes.filter(function(d){
 					return d.name.toLowerCase().includes(input)
@@ -330,14 +335,12 @@
 				});
 			}
 			// CLEAR Search
-			else if (input.length === 0 && lastSearch !== '') {
+			else if (input.length === 0 && settings.lastSearch !== '') {
 				matchingNodes = nodes;
 				matchingLinks = links;
 			}
 			// DUPLICATE search
-			else {
-				return ;
-			}
+			else return ;
 
 			// update the node and link selections
 			link = updateLinks(matchingLinks);
@@ -346,7 +349,7 @@
 			updateSimulation(matchingNodes);
 
 			// Update global last search
-			lastSearch = input;
+			settings.lastSearch = input;
 		}
 
 		function onNodeClick(data) {
@@ -387,61 +390,85 @@
 		}
 
 		function onLinkClick(data) {
-			console.log("LINK data\n", data);
-			console.log("LINK this\n", this);
-			console.log('LINK d3.select(this)\n\n', d3.select(this));
+			// console.log("LINK data\n", data);
+			// console.log("LINK this\n", this);
+			// console.log('LINK d3.select(this)\n\n', d3.select(this));
 		}
 
 		function onNodeOver(data) {
-			if (dragActive === false) {
-				// Dim nodes and links that are not part of the current group
-				nodeGroupInverse.get(data.group).attr('opacity', 0.5);
-				// nodeGroupInverse.get(data.group).transition().duration(100).attr('opacity', 0.25);
-				linkGroupInverse.get(data.group).attr('opacity', 0.5);
-				// linkGroupInverse.get(data.group).transition().duration(100).attr('opacity', 0.25);
+			if (dragActive === true) return;
+			simulation.stop();
 
-				tooltip
-					.html(data.name + "<br/>")
+			var ng = null,
+				lg = null,
+				checked = d3.select('#hover-grouping').property('checked');
+
+			// Select nodes for dimming
+			if (checked === true) {
+				var goodLinks = link.filter(function(l){
+					return !((l.source.id !== data.id) && (l.target.id !== data.id))
+				});
+
+				lg = link.filter(function(l){
+					return ((l.source.id !== data.id) && (l.target.id !== data.id))
+				});
+				ng = node.filter(function(n){
+					return goodLinks.select(function(l){ return (l.source.id === n.id || l.target.id === n.id) ? this : null }).empty();
+				});
+
+				link.filter(function(l){
+					return !((l.source.id !== data.id) && (l.target.id !== data.id))
+				}).attr('stroke-width', settings.linkStrokeWidth * 3.5);
+			}
+			else {
+				lg = linkGroupInverse.get(data.group);
+				ng = nodeGroupInverse.get(data.group);
+			}
+
+			// Dim nodes and links
+			ng.attr('opacity', 0.25);
+			lg.attr('opacity', 0.25);
+			// ng.transition().duration(200).attr('opacity', 0.25);
+			// lg.transition().duration(200).attr('opacity', 0.25);
+
+			// show tooltip
+			tooltip.html(data.name + "<br/>")
 					.style("left", (d3.event.pageX) + "px")
 					.style("top", (d3.event.pageY - 28) + "px")
-				tooltip
-					.transition()
-					.duration(200)
-					.style("opacity", .9)
-			}
+					.transition().duration(200).style("opacity", .9);
 		}
 
 		function onNodeOut(data) {
-			if (dragActive === false) {
-				// Undim nodes and links that are not part of the currect group
-				nodeGroupInverse.get(data.group).attr('opacity', 1.0);
-				// nodeGroupInverse.get(data.group).transition().duration(100).attr('opacity', 1.0);
-				linkGroupInverse.get(data.group).attr('opacity', 1.0);
-				// linkGroupInverse.get(data.group).transition().duration(100).attr('opacity', 1.0);
-				tooltip
-					.transition()
-					.duration(200)
-					.style("opacity", 0)
-			}
+			if (dragActive === true) return;
+			simulation.restart();
+
+			// Undim all nodes and links
+			node.attr('opacity', 1.0);
+			link.attr('opacity', 1.0).attr('stroke-width', settings.linkStrokeWidth);
+			// node.transition().duration(200).attr('opacity', 1.0);
+			// link.transition().duration(200).attr('opacity', 1.0).attr('stroke-width', settings.linkStrokeWidth);
+
+
+			tooltip.transition().duration(200).style("opacity", 0)
 		}
 
-		// Drag events
+		// Node Drag events
 		function dragStart(d) {
 			dragActive = true;
-			d.fx = d3.event.x;			// fx, or fixed x, 'overwrites' normal x and y positions
+			d.fx = d3.event.x;			// fixed 'overwrites' normal x and y positions
 			d.fy = d3.event.y;
 			node.attr('opacity', 1.0);	// reset all node and link opacities
 			link.attr('opacity', 1.0);
 		}
 
 		function dragged(d) {
-			if (!d3.event.active) simulation.alphaTarget(alphaTarget).restart();		// Restart simulation
+			simulation.alpha(alphaTarget / 2.0).restart();
 			d.fx = d3.event.x;
 			d.fy = d3.event.y;
 		}
 
 		function dragEnd(d) {
-			if (!d3.event.active) simulation.alphaTarget(0);
+			simulation.alphaTarget(0);
 			dragActive = false;
 			d.fx = null;
 			d.fy = null;
@@ -567,13 +594,15 @@
 
 			// Other Attribute Initialization that depends on grouping
 			node.each(function(d){
-				if (d.selected === true) d3.select(this).attr('stroke', 'red').attr('stroke-width', '2.0px');
-				d3.select(this).attr('fill', function(d){ return color(d.group % 10) });
+				var curNode = d3.select(this);
+				if (d.selected === true) curNode.attr('stroke', 'red').attr('stroke-width', '2.0px');
+				else curNode.attr('stroke', 'white').attr('stroke-width', '0.75px');
+				curNode.attr('fill', function(d){ return color(d.group % 10) });
 			});
 
 			link.attr('stroke', function(l){ return color(l.group % 10) })
 				.attr('stroke-opacity', '1')
-				.attr('stroke-width', function(d){ return '0.5px' })
+				.attr('stroke-width', function(d){ return settings.linkStrokeWidth })
 		};
 
 
