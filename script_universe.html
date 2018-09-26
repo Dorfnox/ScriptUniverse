@@ -405,22 +405,24 @@
 
 			// Select nodes for dimming
 			if (checked === true) {
+				// Find links that connect to the node
 				var goodLinks = link.filter(function(l){
 					return !((l.source.id !== data.id) && (l.target.id !== data.id))
 				});
 
-				lg = link.filter(function(l){
-					return ((l.source.id !== data.id) && (l.target.id !== data.id))
-				});
-				ng = node.filter(function(n){
-					return goodLinks.select(function(l){ return (l.source.id === n.id || l.target.id === n.id) ? this : null }).empty();
-				});
+				// find links that are not related to the node
+				lg = link.filter(function(l){ return ((l.source.id !== data.id) && (l.target.id !== data.id)) });
 
-				link.filter(function(l){
-					return !((l.source.id !== data.id) && (l.target.id !== data.id))
-				}).attr('stroke-width', settings.linkStrokeWidth * 3.5);
+				// find all nodes connected by the above links to the root node
+				ng = goodLinks.empty() ?
+					node.filter(function(n){ return n.id != data.id }) :
+					node.filter(function(n){ return goodLinks.select(function(l){ return (l.source.id === n.id || l.target.id === n.id) ? this : null }).empty() });
+
+				// increase stroke-width of all good links
+				goodLinks.attr('stroke-width', settings.linkStrokeWidth * 3.5);
 			}
 			else {
+				// grab the complete inverse groups unrelated to the root node
 				lg = linkGroupInverse.get(data.group);
 				ng = nodeGroupInverse.get(data.group);
 			}
@@ -447,7 +449,6 @@
 			link.attr('opacity', 1.0).attr('stroke-width', settings.linkStrokeWidth);
 			// node.transition().duration(200).attr('opacity', 1.0);
 			// link.transition().duration(200).attr('opacity', 1.0).attr('stroke-width', settings.linkStrokeWidth);
-
 
 			tooltip.transition().duration(200).style("opacity", 0)
 		}
