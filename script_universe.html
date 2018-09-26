@@ -107,7 +107,7 @@
 		}
 
 		/* The Selection Script 'Watch' list */
-		#selection-list {
+		#script-tracker {
 			position: absolute;
 			top: 10%;
 			display: flex;
@@ -115,20 +115,26 @@
 			background-color: white;
 			z-index: 3;
 			max-height: 80%;
-			overflow-y: scroll;
+			opacity: 0;
+			padding: 10px;
+			margin: 10px;
+			border: 0.5px solid #778899;
 		}
 
-		#selection-list .selection-item {
+		#script-list-container {
+			overflow-y: scroll;
+			overflow-x: hidden;
+			width: 180px;
+		}
+
+		.script-list-item {
 			display: flex;
 			align-items: center;
 			cursor: pointer;
-			max-width: 180px;
 			padding: 5px;
 			margin: 10px;
 			border-bottom: 1px solid rgb(192, 192, 192);
 			z-index: 3;
-			overflow-y: scroll;
-
 		}
 
 		/* Shadow in requires different definitions for differect browsers */
@@ -153,7 +159,7 @@
 					<button class='search-button' type='button'>Search</button>
 				</div>
 				<div class="search-row">
-					<input id='hover-grouping' name='hovergrouping' type='checkbox' checked>Hover shows closest nodes
+					<input id='hover-grouping' name='hovergrouping' type='checkbox' checked>Only highlight neighboring nodes on hover
 				</div>
 			</div>
 			<div class='compatibility-container'>
@@ -173,8 +179,11 @@
 
 			</div>
 		</div>
-		<div id='selection-list'>
+		<div id='script-tracker'>
 			<span style='text-align: center;font-size: 1.5em;'>Script Tracker</span>
+			<div id='script-list-container'>
+				
+			</div>
 		</div>
 		<div id='tooltip'></div>
 	</div>
@@ -207,13 +216,14 @@
 			height = window.innerHeight,
 			halfWidth = width / 2,
 			halfHeight = height / 2,
-			dragActive = false,
 			nodes = json.nodes,
 			links = json.links.filter(function(d) { return d.source !== null && d.target !== null })
 
 		var settings = {
 			lastSearch: '',
 			linkStrokeWidth: 0.5,
+			dragActive: false,
+			dragging: false,
 		}
 
 		var nodeGroup = new Map(),
@@ -315,7 +325,7 @@
 		function inputSearch(input) {
 			var matchingNodes = null,
 				matchingLinks = null;
-			
+
 			input = input.toLowerCase();
 
 			// NEW Search
@@ -344,6 +354,7 @@
 
 			// update the node and link selections
 			link = updateLinks(matchingLinks);
+			linkHead = updateLinkHeads(matchingLinks);
 			node = updateNodes(matchingNodes);
 			updateGroups();
 			updateSimulation(matchingNodes);
@@ -360,15 +371,15 @@
 			var idLabel = 'sl-' + data.id;
 
 			// Check if item was already added to the selection list
-			if (selectionMain.select('#' + idLabel).empty() === false) return;
+			if (scriptListContainer.select('#' + idLabel).empty() === false) return;
 
-			// Transition in if there is nothing in selectionMain
-			if (selectionMain.selectAll('.selection-item').empty() === true) {
-				selectionMain.transition().duration(200).style('opacity', 0.9);
+			// Transition in if there is nothing in script tracker
+			if (scriptListContainer.selectAll('.script-list-item').empty() === true) {
+				scriptTracker.transition().duration(200).style('opacity', 0.9).attr('class', 'shadow');
 			}
 
 			// Add, Transition in, and run FM script on click for new element
-			var newElem = selectionMain.append('div').attr('class', 'selection-item')
+			var newElem = scriptListContainer.append('div').attr('class', 'script-list-item')
 
 			newElem.attr('id', idLabel).style('opacity', 0).html(data.name)
 
@@ -378,7 +389,7 @@
 			data.selected = true;
 			d3.select(this).attr('stroke', 'red').attr('stroke-width', '2.0px');
 
-			// Add fmScript to selection-item
+			// Add fmScript to script-list-item
 			newElem.on('click', function(d) {
 				fmScript.addVariable({
 					db:   data.db,
@@ -396,7 +407,7 @@
 		}
 
 		function onNodeOver(data) {
-			if (dragActive === true) return;
+			if (settings.dragActive === true) return;
 			simulation.stop();
 
 			var ng = null,
@@ -409,9 +420,15 @@
 				var goodLinks = link.filter(function(l){
 					return !((l.source.id !== data.id) && (l.target.id !== data.id))
 				});
+				var goodLinkHeads = linkHead.filter(function(lh){
+					return !((lh.source.id !== data.id) && (lh.target.id !== data.id))
+				})
 
 				// find links that are not related to the node
 				lg = link.filter(function(l){ return ((l.source.id !== data.id) && (l.target.id !== data.id)) });
+
+				// find link heads that are not related to the node
+				lhg = linkHead.filter(function(lh){ return ((lh.source.id !== data.id) && (lh.target.id !== data.id)) });
 
 				// find all nodes connected by the above links to the root node
 				ng = goodLinks.empty() ?
@@ -419,19 +436,20 @@
 					node.filter(function(n){ return goodLinks.select(function(l){ return (l.source.id === n.id || l.target.id === n.id) ? this : null }).empty() });
 
 				// increase stroke-width of all good links
-				goodLinks.attr('stroke-width', settings.linkStrokeWidth * 3.5);
+				goodLinks.attr('stroke-width', settings.linkStrokeWidth * 2.5);
+				goodLinkHeads.attr('stroke-width', settings.linkStrokeWidth * 5.0);
 			}
 			else {
 				// grab the complete inverse groups unrelated to the root node
 				lg = linkGroupInverse.get(data.group);
+				lhg = linkHead.filter(function(lh){ lh.group != data.group });
 				ng = nodeGroupInverse.get(data.group);
 			}
 
 			// Dim nodes and links
 			ng.attr('opacity', 0.25);
 			lg.attr('opacity', 0.25);
-			// ng.transition().duration(200).attr('opacity', 0.25);
-			// lg.transition().duration(200).attr('opacity', 0.25);
+			lhg.attr('opacity', 0.1);
 
 			// show tooltip
 			tooltip.html(data.name + "<br/>")
@@ -441,36 +459,40 @@
 		}
 
 		function onNodeOut(data) {
-			if (dragActive === true) return;
+			if (settings.dragActive === true) return;
 			simulation.restart();
 
 			// Undim all nodes and links
 			node.attr('opacity', 1.0);
 			link.attr('opacity', 1.0).attr('stroke-width', settings.linkStrokeWidth);
-			// node.transition().duration(200).attr('opacity', 1.0);
-			// link.transition().duration(200).attr('opacity', 1.0).attr('stroke-width', settings.linkStrokeWidth);
+			linkHead.attr('opacity', 1.0).attr('stroke-width', settings.linkStrokeWidth * 3.0);
 
 			tooltip.transition().duration(200).style("opacity", 0)
 		}
 
 		// Node Drag events
 		function dragStart(d) {
-			dragActive = true;
+			settings.dragActive = true;
 			d.fx = d3.event.x;			// fixed 'overwrites' normal x and y positions
 			d.fy = d3.event.y;
-			node.attr('opacity', 1.0);	// reset all node and link opacities
-			link.attr('opacity', 1.0);
 		}
 
 		function dragged(d) {
 			simulation.alpha(alphaTarget / 2.0).restart();
 			d.fx = d3.event.x;
 			d.fy = d3.event.y;
+			if (settings.dragging === false) {
+				node.attr('opacity', 1.0);	// reset all node and link opacities
+				link.attr('opacity', 1.0);
+				linkHead.attr('opacity', 1.0);
+			}
+			settings.dragging = true;
 		}
 
 		function dragEnd(d) {
 			simulation.alphaTarget(0);
-			dragActive = false;
+			settings.dragActive = false;
+			settings.dragging = false;
 			d.fx = null;
 			d.fy = null;
 		}
@@ -500,7 +522,18 @@
 
 		function updateLinks(newLinks) {
 			// Update, Enter, Exit pattern
+			// First update links
 			var myLinks = svg.selectAll('.link').data(newLinks);
+			var linkEnter = myLinks.enter().append('line')
+				.attr('class', 'link')
+				.on('click', onLinkClick);
+			myLinks.exit().remove();
+			myLinks = linkEnter.merge(myLinks);
+			return myLinks;
+		}
+
+		function updateLinkHeads(newLinks) {
+			var myLinks = svg.selectAll('.linkHead').data(newLinks);
 			var linkEnter = myLinks.enter().append('line')
 				.attr('class', 'link')
 				.on('click', onLinkClick);
@@ -519,7 +552,7 @@
 				d.group = linkGroupId++;
 			});
 			link.each(function(l){
-				l.group = linkGroupId++
+				l.group = linkGroupId++;
 			});
 
 			// Declaration of BFS function that adds all connected groups to a single node
@@ -602,8 +635,18 @@
 			});
 
 			link.attr('stroke', function(l){ return color(l.group % 10) })
-				.attr('stroke-opacity', '1')
-				.attr('stroke-width', function(d){ return settings.linkStrokeWidth })
+				.attr('stroke-opacity', 1)
+				.attr('stroke-width', settings.linkStrokeWidth)
+			
+			linkHead
+				.attr('stroke', function(lh){ return '#778899' })
+				.attr('stroke-opacity', 1)
+				.attr('stroke-width', settings.linkStrokeWidth * 3.0)
+				.each(function(lh, i){
+					lh.group = link.data()[i].group;
+				})
+			
+			linkHead.each(function(lh){ console.log(lh.group)})
 		};
 
 
@@ -613,26 +656,44 @@
 
 		function updateSimulation(nodeSet) {
 			simulation.nodes(nodeSet).on('tick', ticked); // starts simulation with given nodeSet
-			simulation.alpha(alphaTarget).restart();
+			simulation.alpha(alphaTarget).alphaTarget(0).restart();
 		}
 
 		function ticked() { // Simulation is like a clock - it ticks, it ticks, it ticks
+
 			link
 				.attr('x1', function(d){ return d.source.x })
 				.attr('x2', function(d){ return d.target.x })
 				.attr('y1', function(d){ return d.source.y })
 				.attr('y2', function(d){ return d.target.y })
 
+			linkHead
+				.each(function(lh){
+					var factor = 5 + (15.5 * sizescale(lh.target.size || 1));
+					var angle = Math.atan2(lh.target.x - lh.source.x, lh.target.y - lh.source.y)+Math.PI;
+					d3.select(this)
+						.attr('x1', lh.target.x)
+						.attr('x2', lh.target.x + factor * Math.sin(angle))
+						.attr('y1', lh.target.y)
+						.attr('y2', lh.target.y + factor * Math.cos(angle))
+				})
+
 			node
 				.attr('transform', function(d) { return transformCalc(d) })
 				.attr('x', function(d){ return d.x })
 				.attr('y', function(d){ return d.y })
+
 		}
 
 
 
 		// SVG CONTAINER, NODE and LINK INITIALIZATION
 		// ------------------------------------------------------------------------------------------------------------
+
+		// Defining selection elements
+		var tooltip = d3.select('#tooltip').style('opacity', 0),
+			scriptListContainer = d3.select('#script-list-container'),
+			scriptTracker = d3.select('#script-tracker');
 
 		// Creating the svg container
 		var svg = d3.select('#chart')
@@ -643,24 +704,21 @@
 				.on('zoom', function(d){ svg.attr('transform', d3.event.transform) }))
 			.append('g')
 			.attr('transform', 'translate(0,0)')
-
+		
 		// Creating Links (Created first so that lines appear underneath nodes themselves)
 		var link = updateLinks(links);
 
+		var linkHead = updateLinkHeads(links);
+
 		// Creating Nodes
 		var node = updateNodes(nodes);
-
-		// Defining the tooltip
-		var tooltip = d3.select('#tooltip').style('opacity', 0);
-
-		// Defining the selection list and items
-		var selectionMain = d3.select('#selection-list').style('opacity', 0).attr('class', 'shadow');
 
 		// Call to update the inital groups
 		updateGroups();
 
 		// Call to update the simulation with initial dataset
 		updateSimulation(nodes);
+
 
 	})();
 	// Anonymous Function end!
