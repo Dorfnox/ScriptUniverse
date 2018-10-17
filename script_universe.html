@@ -23,6 +23,11 @@
 			height: 100%;
 		}
 
+		g {
+			width: 100%;
+			height: 100%;
+		}
+
 		.node-group path {
 			stroke: #fff;
 			stroke-width: 2.5px;
@@ -37,14 +42,14 @@
 		#controls {
 			position: absolute;
 			display: flex;
-			justify-content: center;
+			justify-content: space-evenly;
 			align-items: center;
 			flex-direction: row;
 			flex-wrap: wrap;
 			padding: 5px;
 			width: 100%;
 			z-index: 2;
-			background: rgba(12, 214, 62, 0.123);
+			background: rgba(192, 255, 208, 0.123);
 			border-bottom: 0.5px solid rgba(128, 128, 128, 0.541);
 		}
 
@@ -68,25 +73,31 @@
 			flex-direction: column;
 			justify-content: center;
 			align-items: center;
-			/* border-right: 0.5px solid rgba(128, 128, 128, 0.541); */
 			padding-left: 5px;
 			padding-right: 5px;
-			width: 40%;
+			min-width: 40%;
 		}
 		.search-row {
 			display: flex;
 			flex-direction: row;
 			align-items: center;
+			justify-content: space-between;
 			padding-top: 5px;
 			padding-bottom: 5px;
 			width: 100%;
 		}
-		.search-input {
+		#search-input {
 			height: 100%;
 			min-width: 40%;
 			width: 100%;
 		}
-		.search-button {
+		#search-button {
+			height: 100%;
+			margin-left: 2%;
+			border-radius: 3px;
+			background-color: rgb(213, 212, 255)
+		}
+		#clear-button {
 			height: 100%;
 			margin-left: 2%;
 			border-radius: 3px;
@@ -106,25 +117,53 @@
 			height: 100%;
 		}
 
+		/* Force Controls */
+		.force-container {
+			display: flex;
+			flex-direction: column;
+			justify-content: center;
+			text-align: center;
+			align-items: center;
+			padding-left: 5px;
+			padding-right: 5px;
+			min-width: 40%;
+		}
+		.force-row {
+			display: flex;
+			flex-direction: row;
+			justify-content: space-evenly;
+		}
+		.force-item {
+			display: flex;
+			flex-direction: column;
+			align-items: center;
+			justify-content: stretch;
+			padding-top: 5px;
+			padding-bottom: 5px;
+			width: 100%;
+		}
+
 		/* The Selection Script 'Watch' list */
 		#script-tracker {
 			position: absolute;
-			top: 10%;
 			display: flex;
 			flex-direction: column;
+			top: 15%;
 			background-color: white;
 			z-index: 3;
-			max-height: 80%;
 			opacity: 0;
 			padding: 10px;
 			margin: 10px;
 			border: 0.5px solid #778899;
+			max-width: 180px;
+			height: 75%;
 		}
 
 		#script-list-container {
+			position: relative;
 			overflow-y: scroll;
-			overflow-x: hidden;
-			width: 180px;
+			padding-right: 5px;
+			z-index: 4;
 		}
 
 		.script-list-item {
@@ -134,7 +173,7 @@
 			padding: 5px;
 			margin: 10px;
 			border-bottom: 1px solid rgb(192, 192, 192);
-			z-index: 3;
+			z-index: 5;
 		}
 
 		/* Shadow in requires different definitions for differect browsers */
@@ -155,28 +194,45 @@
 		<div id='controls'>
 			<div class='search-container'>
 				<div class='search-row'>
-					<input class='search-input' type='text' placeholder="...search all objects"/>
-					<button class='search-button' type='button'>Search</button>
+					<input id='search-input' type='text' placeholder="...search all objects"/>
+					<button id='search-button' type='button'>Search</button>
+					<button id='clear-button' type='button'>Clear</button>
 				</div>
 				<div class="search-row">
-					<input id='hover-grouping' name='hovergrouping' type='checkbox' checked>Only highlight neighboring nodes on hover
+					<div>
+						<input id='hover-grouping' name='hovergrouping' type='checkbox' checked>Hover displays closest nodes
+					</div>
+					<div class='compatibility-container'>
+							Compatibility:
+							<select id='compatibility-list'>
+								<option value='all'>All</option>
+								<option disabled='disabled'>----</option>
+								<option value='M'>Macintosh</option>
+								<option value='W'>Windows</option>
+								<option value='I'>iOS</option>
+								<option value='S'>Server</option>
+								<option value='D'>WebDirect</option>
+								<option value='C'>Custom Web Publishing</option>
+							</select><br />
+						</div>
 				</div>
 			</div>
-			<div class='compatibility-container'>
-				Compatibility:
-				<select id='compatibility-list'>
-					<option value='all'>All</option>
-					<option disabled='disabled'>----</option>
-					<option value='M'>Macintosh</option>
-					<option value='W'>Windows</option>
-					<option value='I'>iOS</option>
-					<option value='S'>Server</option>
-					<option value='D'>WebDirect</option>
-					<option value='C'>Custom Web Publishing</option>
-				</select><br />
-			</div>
 			<div class='force-container'>
-
+				Force Editor
+				<div class='force-row'>
+					<div class='force-item'>
+						Node Collision
+						<input id='slider-collide' type="range" min="6" max="36" value="21">
+					</div>
+					<div class='force-item'>
+						Mass Repulsion
+						<input id='slider-manybody' type="range" min="-400" max="400" value="0">
+					</div>
+					<div class='force-item'>
+						Link Distance
+						<input id='slider-distance' type="range" min="-300" max="300" value="0">
+					</div>
+				</div>
 			</div>
 		</div>
 		<div id='script-tracker'>
@@ -237,9 +293,8 @@
 			.domain([0, d3.max(nodes, function (d) { return d.size })])
 			.range([0.3, 2.0]);
 
-		var transformCalc = function(d, optionalFactor) {
-			var scale = sizescale(d.size);
-			if (optionalFactor) scale *= optionalFactor;
+		var transformCalc = function(d) {
+			var scale = sizescale(d.size || 1);
 			return 'translate(' + (d.x - scale * 17) + ',' + (d.y - scale * 17) + ')' + ' scale(' + scale + ')';
 		}
 
@@ -249,7 +304,7 @@
 				'square': 'M0,0h31v31h-31z',
 				'parallelogram': 'm7.47255,1.48611l24.45329,0l-7.60769,29.168l-24.45329,0l7.60769,-29.168z',
 				'upside_down_triangle': 'm0.73434,7.30112l12.62465,21.86412c1.61153,2.79333 4.2486,2.79333 5.86012,0l12.62465,-21.86607c1.61349,-2.79137 0.29302,-5.07487 -2.93006,-5.07487l-25.2493,0c-3.22502,0.00195 -4.54356,2.28544 -2.93006,5.07682z',
-				'diamond': 'M15.5,0 L31,15.5 L15.5,30.5 L0,15.5Z',
+				'diamond': 'M15.5,0 L31,15.5 L15.5,30.5 L0,15.5z',
 				'plus': 'm30.79918,10.34395l-10.31033,0l0,-10.31033l-10.30723,0l0,10.31033l-10.31187,0l0,10.30878l10.31187,0l0,10.31033l10.30723,0l0,-10.31033l10.31033,0l0,-10.30878z'
 			};
 			var symbolMap = {
@@ -273,13 +328,36 @@
 		// Dom event initialization -----------------------------------------------------------------------------------
 
 		// search functionality
-		document.getElementsByClassName("search-button")[0].addEventListener('click', function(){
-			var input = document.getElementsByClassName("search-input")[0].value;
+		d3.select('#search-input').on('keyup', function(){
+			var input = d3.event.srcElement.value;
+			if (d3.event.keyCode === 13 /* Return Key */) inputSearch(input);
+		});
+		d3.select('#search-button').on('click', function(){
+			var input = d3.select('#search-input').property('value');
 			inputSearch(input);
 		});
-		document.getElementsByClassName("search-input")[0].addEventListener('keyup', function(e){
-			if (e.keyCode === 13 /* Return Key */) inputSearch(e.srcElement.value);
-		});
+		d3.select('#clear-button').on('click', function(){
+			d3.select('#search-input').property('value', '');
+			inputSearch('');
+		})
+
+		// slider functionality
+		d3.select('#slider-collide').on('input', function(){
+			const value = this.value;
+			simulation.force('collide', d3.forceCollide(function(d){ return sizescale(d.size) * value }))
+			simulation.alpha(alphaTarget / 3.5).restart();
+		})
+		d3.select('#slider-manybody').on('input', function(){
+			const value = -400 - this.value;
+			simulation.force('manyBody', d3.forceManyBody().strength(value));
+			simulation.alpha(alphaTarget / 3.5).restart();
+		})
+		d3.select('#slider-distance').on('input', function(){
+			const value = this.value;
+			simulation.force('link', d3.forceLink(links).distance(value));
+			simulation.alpha(alphaTarget / 3.5).restart();
+		})
+
 
 
 		// Initializing forces ----------------------------------------------------------------------------------------
@@ -304,7 +382,7 @@
 				}),
 
 			forceLink =								// Creates forces between linked nodes
-				d3.forceLink(links),
+				d3.forceLink(links).distance(0),
 
 			forceManyBody =							// Force 'betweeen' objects
 				d3.forceManyBody()
@@ -316,7 +394,6 @@
 			.force('collide', forceCollide)
 			.force('link', forceLink)
 			.force('manyBody', forceManyBody)
-
 
 
 		// EVENT FUNCTION DECLARATIONS
@@ -442,7 +519,7 @@
 			else {
 				// grab the complete inverse groups unrelated to the root node
 				lg = linkGroupInverse.get(data.group);
-				lhg = linkHead.filter(function(lh){ lh.group != data.group });
+				lhg = linkHead.filter(function(lh){ return lh.group !== data.group });
 				ng = nodeGroupInverse.get(data.group);
 			}
 
@@ -453,8 +530,8 @@
 
 			// show tooltip
 			tooltip.html(data.name + "<br/>")
-					.style("left", (d3.event.pageX) + "px")
-					.style("top", (d3.event.pageY - 28) + "px")
+					.style("left", (d3.event.pageX + 25) + "px")
+					.style("top", (d3.event.pageY - 50) + "px")
 					.transition().duration(200).style("opacity", .9);
 		}
 
@@ -490,7 +567,9 @@
 		}
 
 		function dragEnd(d) {
-			simulation.alphaTarget(0);
+			if (settings.dragging === true) { // Only restart the animation if the node was being dragged
+				simulation.alpha(alphaTarget / 2.0).alphaTarget(0).restart();
+			}
 			settings.dragActive = false;
 			settings.dragging = false;
 			d.fx = null;
@@ -504,7 +583,7 @@
 
 		function updateNodes(newNodes) {
 			// Update, Enter, Exit pattern
-			var myNodes = svg.selectAll('.node').data(newNodes);
+			var myNodes = svgNode.selectAll('.node').data(newNodes);
 			var nodeEnter = myNodes.enter().append('path')
 				.attr('d', attrPathType)
 				.attr('class', 'node')
@@ -522,8 +601,7 @@
 
 		function updateLinks(newLinks) {
 			// Update, Enter, Exit pattern
-			// First update links
-			var myLinks = svg.selectAll('.link').data(newLinks);
+			var myLinks = svgLink.selectAll('.link').data(newLinks);
 			var linkEnter = myLinks.enter().append('line')
 				.attr('class', 'link')
 				.on('click', onLinkClick);
@@ -533,9 +611,9 @@
 		}
 
 		function updateLinkHeads(newLinks) {
-			var myLinks = svg.selectAll('.linkHead').data(newLinks);
+			var myLinks = svgLinkHead.selectAll('.linkHead').data(newLinks);
 			var linkEnter = myLinks.enter().append('line')
-				.attr('class', 'link')
+				.attr('class', 'linkHead')
 				.on('click', onLinkClick);
 			myLinks.exit().remove();
 			myLinks = linkEnter.merge(myLinks);
@@ -627,17 +705,10 @@
 			});
 
 			// Other Attribute Initialization that depends on grouping
-			node.each(function(d){
-				var curNode = d3.select(this);
-				if (d.selected === true) curNode.attr('stroke', 'red').attr('stroke-width', '2.0px');
-				else curNode.attr('stroke', 'white').attr('stroke-width', '0.75px');
-				curNode.attr('fill', function(d){ return color(d.group % 10) });
-			});
-
 			link.attr('stroke', function(l){ return color(l.group % 10) })
 				.attr('stroke-opacity', 1)
 				.attr('stroke-width', settings.linkStrokeWidth)
-			
+
 			linkHead
 				.attr('stroke', function(lh){ return '#778899' })
 				.attr('stroke-opacity', 1)
@@ -645,8 +716,13 @@
 				.each(function(lh, i){
 					lh.group = link.data()[i].group;
 				})
-			
-			linkHead.each(function(lh){ console.log(lh.group)})
+
+			node.each(function(d){
+				var curNode = d3.select(this);
+				if (d.selected === true) curNode.attr('stroke', 'red').attr('stroke-width', '2.0px');
+				else curNode.attr('stroke', 'white').attr('stroke-width', '0.75px');
+				curNode.attr('fill', function(d){ return color(d.group % 10) });
+			});
 		};
 
 
@@ -654,20 +730,21 @@
 		// SIMULATION FUNCTION DECLARATIONS
 		// ------------------------------------------------------------------------------------------------------------
 
+		// restarts simulation with given nodeSet
 		function updateSimulation(nodeSet) {
-			simulation.nodes(nodeSet).on('tick', ticked); // starts simulation with given nodeSet
+			simulation.nodes(nodeSet).on('tick', ticked);
 			simulation.alpha(alphaTarget).alphaTarget(0).restart();
 		}
 
 		function ticked() { // Simulation is like a clock - it ticks, it ticks, it ticks
 
-			link
+			link		// move each link relative to it's source node's position
 				.attr('x1', function(d){ return d.source.x })
 				.attr('x2', function(d){ return d.target.x })
 				.attr('y1', function(d){ return d.source.y })
-				.attr('y2', function(d){ return d.target.y })
+				.attr('y2', function(d){ return d.target.y });
 
-			linkHead
+			linkHead	// move each 'arrow head' line to the target end of the node
 				.each(function(lh){
 					var factor = 5 + (15.5 * sizescale(lh.target.size || 1));
 					var angle = Math.atan2(lh.target.x - lh.source.x, lh.target.y - lh.source.y)+Math.PI;
@@ -676,12 +753,12 @@
 						.attr('x2', lh.target.x + factor * Math.sin(angle))
 						.attr('y1', lh.target.y)
 						.attr('y2', lh.target.y + factor * Math.cos(angle))
-				})
+				});
 
-			node
+			node		// Move each node acording to the simulation
 				.attr('transform', function(d) { return transformCalc(d) })
 				.attr('x', function(d){ return d.x })
-				.attr('y', function(d){ return d.y })
+				.attr('y', function(d){ return d.y });
 
 		}
 
@@ -701,16 +778,22 @@
 			.attr('width', width)
 			.attr('height', height)
 			.call(d3.zoom()
-				.on('zoom', function(d){ svg.attr('transform', d3.event.transform) }))
-			.append('g')
-			.attr('transform', 'translate(0,0)')
-		
+				.on('zoom', function(d){
+					svgLink.attr('transform', d3.event.transform)
+					svgLinkHead.attr('transform', d3.event.transform)
+					svgNode.attr('transform', d3.event.transform)
+				}))
+
+
+		var svgLink = svg.append('g').attr('transform', 'translate(0,0)'),
+			svgLinkHead = svg.append('g').attr('transform', 'translate(0,0)'),
+			svgNode = svg.append('g').attr('transform', 'translate(0,0)');
+
 		// Creating Links (Created first so that lines appear underneath nodes themselves)
 		var link = updateLinks(links);
 
 		var linkHead = updateLinkHeads(links);
 
-		// Creating Nodes
 		var node = updateNodes(nodes);
 
 		// Call to update the inital groups
