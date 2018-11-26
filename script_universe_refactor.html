@@ -5,10 +5,16 @@
 
 	<!-- d3 5.7 -->
 	<script type='text/javascript' src='d3.js'></script>
+	<!-- ‡‡D3_LINK‡‡ -->
+
 	<!-- data.js -->
-	<script type='text/javascript' src='data.js'></script>
+	<script type='text/javascript' src='inspectorProData.js'></script>
+	<!-- <script type='text/javascript' src='data.js'></script> -->
+	<!-- ‡‡DATA_LINK‡‡ -->
+
 	<!-- fm.js -->
 	<script type='text/javascript' src='fm.js'></script>
+	<!-- ‡‡FM_LINK‡‡ -->
 
 	<style type='text/css'>
 		#chart {
@@ -143,39 +149,6 @@
 			width: 100%;
 		}
 
-		/* The Selection Script 'Watch' list */
-		#script-tracker {
-			position: absolute;
-			display: flex;
-			flex-direction: column;
-			top: 15%;
-			background-color: white;
-			z-index: 3;
-			opacity: 0;
-			padding: 10px;
-			margin: 10px;
-			border: 0.5px solid #778899;
-			max-width: 180px;
-			height: 75%;
-		}
-
-		#script-list-container {
-			position: relative;
-			overflow-y: scroll;
-			padding-right: 5px;
-			z-index: 4;
-		}
-
-		.script-list-item {
-			display: flex;
-			align-items: center;
-			cursor: pointer;
-			padding: 5px;
-			margin: 10px;
-			border-bottom: 1px solid rgb(192, 192, 192);
-			z-index: 5;
-		}
-
 		/* Shadow in requires different definitions for differect browsers */
 		.shadow {
 			-webkit-box-shadow: 3px 3px 8px 0px rgba(0,0,0, .15);	/* Safari 4+ */
@@ -235,12 +208,6 @@
 				</div>
 			</div>
 		</div>
-		<div id='script-tracker'>
-			<span style='text-align: center;font-size: 1.5em;'>Script Tracker</span>
-			<div id='script-list-container'>
-				
-			</div>
-		</div>
 		<div id='tooltip'></div>
 	</div>
 </body>
@@ -251,10 +218,21 @@
 
 	(function () {
 
-		// Error handling -----------------------------------------------------
+var json = {"links":[{"count":3,"source":0,"target":1},{"count":1,"source":2,"target":1},{"count":1,"source":3,"target":1},{"count":1,"source":4,"target":1},{"count":1,"source":4,"target":0},{"count":1,"source":5,"target":3},{"count":3,"source":6,"target":2},{"count":1,"source":8,"target":3},{"count":1,"source":9,"target":1},{"count":1,"source":11,"target":1},{"count":1,"source":12,"target":1},{"count":1,"source":13,"target":0},{"count":1,"source":14,"target":2},{"count":1,"source":15,"target":3}],"nodes":[{"area":26,"db":"Assets","id":0,"name":"Reference script 2 - steps [5] in database Assets","object":"Script","self_reference":0,"size":15},{"area":26,"db":"Assets","id":1,"name":"Reference script - steps [1] in database Assets","object":"Script","self_reference":0,"size":3},{"area":26,"db":"Assets","id":2,"name":"Reference script 3 - steps [2] in database Assets","object":"Script","self_reference":0,"size":6},{"E":2,"area":26,"db":"Assets","id":3,"name":"Reference script 4 - steps [11] in database Assets","object":"Script","self_reference":1,"size":33},{"G":1,"area":16,"db":"Assets","id":4,"name":"Asset List - group [Assets] - objects [19] - in database Assets","object":"Layout","self_reference":0,"size":15},{"E":2,"G":1,"area":16,"db":"Assets","id":5,"name":"Asset Details - group [Assets] - objects [44] - in database Assets","object":"Layout","self_reference":0,"size":15},{"G":1,"area":16,"db":"Assets","id":6,"name":"Vendor List - group [Assets] - objects [11] - in database Assets","object":"Layout","self_reference":0,"size":15},{"E":1,"area":15,"db":"Assets","id":7,"name":"Field - on layout Asset Details in database Assets","object":"Layout Object","self_reference":0,"size":5},{"area":15,"db":"Assets","id":8,"name":"Field | Name - on layout Asset Details in database Assets","object":"Layout Object","self_reference":0,"size":5},{"area":6,"db":"Assets","id":9,"name":"Perform Script [ “Reference script” ] - menu position [1] in database Assets","object":"Custom Menu Item","self_reference":0,"size":10},{"E":1,"area":6,"db":"Assets","id":10,"name":"Perform Script [ “<unknown>” ] - menu position [2] in database Assets","object":"Custom Menu Item","self_reference":0,"size":10},{"area":181,"db":"Assets","id":11,"name":"Database Assets | On First Window Open","object":"File Option","self_reference":0,"size":20},{"area":181,"db":"Assets","id":12,"name":"Database Assets | On Last Window Close","object":"File Option","self_reference":0,"size":20},{"area":181,"db":"Assets","id":13,"name":"Database Assets | On Window Open","object":"File Option","self_reference":0,"size":20},{"area":181,"db":"Assets","id":14,"name":"Database Assets | On Window Close","object":"File Option","self_reference":0,"size":20},{"area":181,"db":"Assets","id":15,"name":"Database Assets | On File AV Player Change","object":"File Option","self_reference":0,"size":20},{"area":26,"db":"Assets","id":16,"name":"Go to Entry Field - steps [2] in database Assets","object":"Script","self_reference":0,"size":6},{"area":26,"db":"Assets","id":17,"name":"Add Related Record - steps [3] in database Assets","object":"Script","self_reference":0,"size":9},{"area":26,"db":"Assets","id":18,"name":"unref - steps [2] in database Assets","object":"Script","self_reference":0,"size":6},{"area":26,"db":"Assets","id":19,"name":"UNREFERENCED_SCRIPT!!! - steps [0] in database Assets","object":"Script","self_reference":0,"size":0},{"area":26,"db":"Assets","id":20,"name":"Anotad - steps [1] in database Assets","object":"Script","self_reference":0,"size":3},{"area":26,"db":"Assets","id":21,"name":"UNREF - steps [0] in database Assets","object":"Script","self_reference":0,"size":0}]}
 
 		if (!json.nodes || json.nodes.length === 0) {
-			return ; // No data to process
+			return ;
+		}
+
+		var nodes = json.nodes.filter(function(f){ return f.db !== "" }),
+			links = json.links.filter(function(f){ return f.db !== "" }),
+			databaseMap = {};
+
+		// Build database Map in order to choose colors
+		for (var i = 0, num = 1 ; i < nodes.length ; ++i) {
+			if (databaseMap[nodes[i].db] === undefined) {
+				databaseMap[nodes[i].db] = 10 * num++;
+			}
 		}
 
 		// Initializing filemaker functions -----------------------------------
@@ -266,13 +244,11 @@
 		var fmScript = db.script('b d3 . link_to_item');
 
 		// Initializing variables ---------------------------------------------
-	
+
 		var width = window.innerWidth,
 			height = window.innerHeight,
 			halfWidth = width / 2,
-			halfHeight = height / 2,
-			nodes = json.nodes,
-			links = json.links.filter(function(d) { return d.source !== null && d.target !== null })
+			halfHeight = height / 2;
 
 		var settings = {
 			lastSearch: '',
@@ -281,20 +257,15 @@
 			dragging: false,
 		}
 
-		var nodeGroup = new Map(),
-			nodeGroupInverse = new Map(),
-			linkGroup = new Map(),
-			linkGroupInverse = new Map();
-
 		var color = d3.scaleOrdinal(d3.schemePaired);
 
 		var sizescale = d3.scaleSqrt()
-			.domain([0, d3.max(nodes, function (d) { return d.size })])
+			.domain([d3.min(nodes, function(d) { return d.size || 1 }), d3.max(nodes, function (d) { return d.size })])
 			.range([0.3, 2.0]);
-
-		var transformCalc = function(d) {
-			var scale = sizescale(d.size || 1);
-			return 'translate(' + (d.x - scale * 17) + ',' + (d.y - scale * 17) + ')' + ' scale(' + scale + ')';
+		
+		// Store the scale internally within each node so as to avoid calculating it later
+		for (var i = 0 ; i < nodes.length ; ++i) {
+			nodes[i].scale = Math.round(sizescale(nodes[i].size || 1) * 100) / 100;
 		}
 
 		function attrPathType(d, s) {
@@ -310,10 +281,10 @@
 				'Script': 'circle',
 				'Layout': 'upside_down_triangle',
 				'Layout Object': 'square',
-				'Custom Menu Item': 'diamond',
-				'Database': 'plus',
+				'File Option': 'diamond',
+				'Custom Menu Item': 'plus',
 			};
-			return symbols[symbolMap[d.object]];//symbols['upside_down_triangle'];
+			return symbols[symbolMap[d.object]];
 		}
 
 
@@ -433,96 +404,71 @@
 			settings.lastSearch = input;
 		}
 
-		function onNodeClick(data) {
-			// console.log("NODE data\n", data);							// the actual node data
-			// console.log("NODE this\n", this);							// the element in the DOM
-			// console.log('NODE d3.select(this)\n\n', d3.select(this));	// The 'Selection' Group of elements from the DOM for use by d3 Methods
-
-			var idLabel = 'sl-' + data.id;
-
-			// Check if item was already added to the selection list
-			if (scriptListContainer.select('#' + idLabel).empty() === false) return;
-
-			// Transition in if there is nothing in script tracker
-			if (scriptListContainer.selectAll('.script-list-item').empty() === true) {
-				scriptTracker.transition().duration(200).style('opacity', 0.9).attr('class', 'shadow');
-			}
-
-			// Add, Transition in, and run FM script on click for new element
-			var newElem = scriptListContainer.append('div').attr('class', 'script-list-item')
-
-			newElem.attr('id', idLabel).style('opacity', 0).html(data.name)
-
-			newElem.transition().duration(200).style('opacity', 1.0)
-
-			// Highlight selected node
-			data.selected = true;
-			d3.select(this).attr('stroke', 'red').attr('stroke-width', '2.0px');
-
-			// Add fmScript to script-list-item
-			newElem.on('click', function(d) {
-				fmScript.addVariable({
-					db:   data.db,
-					id:   data.id,
-					area: data.area,
-				});
-				fmScript.run();
-			});
+		function onLinkClick(data) {
+			console.log('LINK d3.select(this)\n\n', d3.select(this));
 		}
 
-		function onLinkClick(data) {
-			// console.log("LINK data\n", data);
-			// console.log("LINK this\n", this);
-			// console.log('LINK d3.select(this)\n\n', d3.select(this));
+		function onLinkOver(data) {
+			simulation.stop();
+			d3.select(this).attr('stroke-width', settings.linkStrokeWidth * 5.0);
+			tooltip.html("Source<br/>" + data.source.name + "<br/>" + "Target<br/>" + data.target.name + "<br/>")
+					.style("left", (d3.event.pageX + 25) + "px")
+					.style("top", (d3.event.pageY - 50) + "px")
+					.transition().duration(200).style("opacity", .9);
+		}
+
+		function onLinkOut(data) {
+			simulation.restart();
+			d3.select(this).attr('stroke-width', settings.linkStrokeWidth);
+			tooltip.transition().duration(200).style("opacity", 0);
+		}
+
+		function onNodeClick(data) {
+			console.log("NODE data\n", data);
+
+			// Add fmScript to script-list-item
+			fmScript.addVariable({ node: data });
+			fmScript.run();
 		}
 
 		function onNodeOver(data) {
 			if (settings.dragActive === true) return;
+
+			// Freeze simulation
 			simulation.stop();
 
-			var ng = null,
-				lg = null,
-				checked = d3.select('#hover-grouping').property('checked');
+			// Dim all things
+			node.attr('opacity', 0.25);
+			link.attr('opacity', 0.25);
+			linkHead.attr('opacity', 0.25);
 
-			// Select nodes for dimming
-			if (checked === true) {
-				// Find links that connect to the node
-				var goodLinks = link.filter(function(l){
-					return !((l.source.id !== data.id) && (l.target.id !== data.id))
+			// Undim self
+			d3.select(this).attr('opacity', 1.0);
+
+			// Undim nodes, links, and linkHeads
+			if (d3.select('#hover-grouping').property('checked')) { // Undim by neighboring nodes
+				for (var i = 0 ; i < data.linkArray.length ; ++i) {
+					node.filter(function(n){ return n.id === data.linkArray[i].source.id || n.id === data.linkArray[i].target.id}).attr('opacity', 1.0)
+				}
+				link.filter(function(l){ return l.source.id === data.id || l.target.id === data.id })
+					.attr('opacity', 1.0).attr('stroke-width', settings.linkStrokeWidth * 3.0);
+				linkHead.filter(function(lh){ return lh.source.id === data.id || lh.target.id === data.id })
+					.attr('opacity', 1.0).attr('stroke-width', settings.linkStrokeWidth * 8.0);
+
+			} else { // Undim by group ID
+				node.each(function(n){
+					if (n.group !== data.group) d3.select(this).attr('opacity', 0.25);
 				});
-				var goodLinkHeads = linkHead.filter(function(lh){
-					return !((lh.source.id !== data.id) && (lh.target.id !== data.id))
-				})
-
-				// find links that are not related to the node
-				lg = link.filter(function(l){ return ((l.source.id !== data.id) && (l.target.id !== data.id)) });
-
-				// find link heads that are not related to the node
-				lhg = linkHead.filter(function(lh){ return ((lh.source.id !== data.id) && (lh.target.id !== data.id)) });
-
-				// find all nodes connected by the above links to the root node
-				ng = goodLinks.empty() ?
-					node.filter(function(n){ return n.id != data.id }) :
-					node.filter(function(n){ return goodLinks.select(function(l){ return (l.source.id === n.id || l.target.id === n.id) ? this : null }).empty() });
-
-				// increase stroke-width of all good links
-				goodLinks.attr('stroke-width', settings.linkStrokeWidth * 2.5);
-				goodLinkHeads.attr('stroke-width', settings.linkStrokeWidth * 5.0);
+				link.each(function(l){
+					if (l.group !== data.group) d3.select(this).attr('opacity', 0.25);
+				});
+				linkHead.each(function(lh){
+					if (lh.group !== data.group) d3.select(this).attr('opacity', 0.25);
+				});
 			}
-			else {
-				// grab the complete inverse groups unrelated to the root node
-				lg = linkGroupInverse.get(data.group);
-				lhg = linkHead.filter(function(lh){ return lh.group !== data.group });
-				ng = nodeGroupInverse.get(data.group);
-			}
-
-			// Dim nodes and links
-			ng.attr('opacity', 0.25);
-			lg.attr('opacity', 0.25);
-			lhg.attr('opacity', 0.1);
 
 			// show tooltip
-			tooltip.html(data.name + "<br/>")
+			tooltip.html(data.object + "<br/>" + data.name + "<br/>")
 					.style("left", (d3.event.pageX + 25) + "px")
 					.style("top", (d3.event.pageY - 50) + "px")
 					.transition().duration(200).style("opacity", .9);
@@ -530,14 +476,15 @@
 
 		function onNodeOut(data) {
 			if (settings.dragActive === true) return;
+
 			simulation.restart();
 
-			// Undim all nodes and links
+			// Undim all nodes, links, and linkHeads
 			node.attr('opacity', 1.0);
 			link.attr('opacity', 1.0).attr('stroke-width', settings.linkStrokeWidth);
 			linkHead.attr('opacity', 1.0).attr('stroke-width', settings.linkStrokeWidth * 3.0);
 
-			tooltip.transition().duration(200).style("opacity", 0)
+			tooltip.transition().duration(200).style("opacity", 0);
 		}
 
 		// Node Drag events
@@ -569,8 +516,6 @@
 			d.fy = null;
 		}
 
-
-
 		// UPDATE FUNCTION DECLARATIONS
 		// ------------------------------------------------------------------------------------------------------------
 
@@ -597,7 +542,9 @@
 			var myLinks = svgLink.selectAll('.link').data(newLinks);
 			var linkEnter = myLinks.enter().append('line')
 				.attr('class', 'link')
-				.on('click', onLinkClick);
+				.on('click', onLinkClick)
+				.on('mouseover', onLinkOver)
+				.on('mouseout', onLinkOut);
 			myLinks.exit().remove();
 			myLinks = linkEnter.merge(myLinks);
 			return myLinks;
@@ -616,107 +563,84 @@
 		// Main update function that sorts all new nodes and links into Groups.
 		function updateGroups() {
 
-			var linkGroupId = 111111;
+			var visited = new Map(),
+				groupId = 0;
 
-			// Initializing the nodes and links with extra information
+			// Clear the old link-arrays from the nodes
+			node.each(function(d){ d.linkArray = []; });
+
+			// Build new link-arrays for the source and target nodes
+			link.each(function(l){
+				l.source.linkArray.push(l);
+				l.target.linkArray.push(l);
+			})
+
+			// Initializing the nodes and links with group of 0 information
 			node.each(function(d){
-				d.group = linkGroupId++;
+				d.group = 0;
 			});
 			link.each(function(l){
-				l.group = linkGroupId++;
+				l.group = 0;
 			});
 
-			// Declaration of BFS function that adds all connected groups to a single node
-			function virallyInfect(linkItem, groupId) {
-				var queue = [];
-				var visited = new Map();
+            // BFS 'Virally-Infect' function that calculates all connected 'groups' and assigns them a group id
+			link.each(function(l) {
+                if (visited.has(l.index) === false) {
+					var queue = [];
 
-				// Push the very first item to the queue
-				queue.push(linkItem);
+					visited.set(l.index, null);
 
-				while (queue.length !== 0) {
-					// Pop off the next queue'd item
-					linkItem = queue.shift();
+					queue.push(l);
 
-					// Check that the item hasn't been used yet,
-					// AND the groups don't already match -
-					// (this tells us that a previous call to virallyInfect has run on these nodes/links)
-					if (visited.has(linkItem) === false && linkItem.group != linkItem.source.group) {
+					++groupId;
+
+					while (queue.length > 0) {
+						// dequeue the next item in the queue
+						l = queue.shift();
 
 						// Set ID's --- MOST IMPORTANT PART
-						linkItem.group = groupId;
-						linkItem.source.group = groupId;
-						linkItem.target.group = groupId;
+						l.group = groupId;
+						l.source.group = groupId;
+						l.target.group = groupId;
 
-						link.each(function(l) {
-							if (l.target.id === linkItem.source.id ||
-								l.target.id === linkItem.target.id ||
-								l.source.id === linkItem.source.id ||
-								l.source.id === linkItem.target.id ) queue.push(l) // Push links to queue
-						});
-						// Set that linkItem as having been visited
-						visited.set(linkItem, null);
+						for (var i = 0 ; i < l.source.linkArray.length ; ++i) {
+							if (l.source.linkArray[i].group !== groupId && visited.has(l.source.linkArray[i].index) === false) {
+								visited.set(l.source.linkArray[i].index, null);
+								queue.push(l.source.linkArray[i]);
+							}
+						}
+						for (var i = 0 ; i < l.target.linkArray.length ; ++i) {
+							if (l.target.linkArray[i].group !== groupId && visited.has(l.target.linkArray[i].index) === false) {
+								visited.set(l.target.linkArray[i].index, null);
+								queue.push(l.target.linkArray[i]);
+							}
+						}
 					}
-				}
-				// Clean map
-				delete visited;
-			}
-
-			// Run the above function for EACH item in the links
-			link.each(function(l) { virallyInfect(l, linkGroupId++) });
-
-
-			// Clear global maps
-			nodeGroup.clear();
-			linkGroup.clear();
-			nodeGroupInverse.clear();
-			linkGroupInverse.clear();
-
-			// Create Node / Link and Inverse Node / Link selection mappings for quick access (this avoids filtering)
-			linkGroupId = 1;
-			node.each(function(d) {
-				// Add entire group selection to the regular nodeGroup
-				if (nodeGroup.has(d.group) === false) {
-					// Collect selection groups
-					var nodeSelection = node.filter(function(f) { return f.group === d.group });
-					var inverseNodeSelection = node.filter(function(f) { return f.group !== d.group });
-					var linkSelection = link.filter(function(f) { return f.group === d.group });
-					var inverseLinkSelection = link.filter(function(f) { return f.group !== d.group });
-
-					// Reset the ids for proper selection
-					nodeSelection.each(function(f){ f.group = linkGroupId });
-					linkSelection.each(function(f){ f.group = linkGroupId });
-
-					// Add all to mapping
-					nodeGroup.set(linkGroupId, nodeSelection);
-					linkGroup.set(linkGroupId, linkSelection);
-					nodeGroupInverse.set(linkGroupId, inverseNodeSelection);
-					linkGroupInverse.set(linkGroupId, inverseLinkSelection);
-
-					// Increment Id
-					++linkGroupId;
 				}
 			});
 
-			// Other Attribute Initialization that depends on grouping
-			link.attr('stroke', function(l){ return color(l.group % 10) })
-				.attr('stroke-opacity', 1)
-				.attr('stroke-width', settings.linkStrokeWidth)
+			// Add the groupId to unlinked nodes
+			node.each(function(d){ if (d.group === 0) d.group = ++groupId;});
 
-			linkHead
-				.attr('stroke', function(lh){ return '#778899' })
-				.attr('stroke-opacity', 1)
-				.attr('stroke-width', settings.linkStrokeWidth * 3.0)
-				.each(function(lh, i){
-					lh.group = link.data()[i].group;
-				})
+            // Clean map
+			delete visited;
+			// Other Attribute Initialization
+			link.attr('stroke', function(l){ return color(databaseMap[l.source.db] % 10)})
+				.attr('stroke-width', settings.linkStrokeWidth);
+
+			linkHead.each(function(lh, i){
+				d3.select(this)
+					.attr('stroke', function(lh){ return '#778899' })
+					.attr('stroke-width', settings.linkStrokeWidth * 3.0)
+				lh.group = link.data()[i].group;
+			})
 
 			node.each(function(d){
 				var curNode = d3.select(this);
-				if (d.selected === true) curNode.attr('stroke', 'red').attr('stroke-width', '2.0px');
+				if (d.selected === true) curNode.attr('stroke', 'red').attr('stroke-width', '1.5px');
 				else curNode.attr('stroke', 'white').attr('stroke-width', '0.75px');
-				curNode.attr('fill', function(d){ return color(d.group % 10) });
-			});
+				curNode.attr('fill', function(d){ return color(databaseMap[d.db] % 10) });
+            });
 		};
 
 
@@ -730,6 +654,8 @@
 			simulation.alpha(alphaTarget).alphaTarget(0).restart();
 		}
 
+		var lhFactor = null;
+		var lhAngle = null;
 		function ticked() { // Simulation is like a clock - it ticks, it ticks, it ticks
 
 			link		// move each link relative to it's source node's position
@@ -740,20 +666,19 @@
 
 			linkHead	// move each 'arrow head' line to the target end of the node
 				.each(function(lh){
-					var factor = 5 + (15.5 * sizescale(lh.target.size || 1));
-					var angle = Math.atan2(lh.target.x - lh.source.x, lh.target.y - lh.source.y)+Math.PI;
+					lhFactor = 5 + (15.5 * lh.target.scale);
+					lhAngle = Math.atan2(lh.target.x - lh.source.x, lh.target.y - lh.source.y) + Math.PI;
 					d3.select(this)
 						.attr('x1', lh.target.x)
-						.attr('x2', lh.target.x + factor * Math.sin(angle))
+						.attr('x2', lh.target.x + lhFactor * Math.sin(lhAngle))
 						.attr('y1', lh.target.y)
-						.attr('y2', lh.target.y + factor * Math.cos(angle))
+						.attr('y2', lh.target.y + lhFactor * Math.cos(lhAngle))
 				});
 
 			node		// Move each node acording to the simulation
-				.attr('transform', function(d) { return transformCalc(d) })
-				.attr('x', function(d){ return d.x })
-				.attr('y', function(d){ return d.y });
-
+				.attr('transform', function(d){
+					return 'translate(' + (d.x - d.scale * 17) + ',' + (d.y - d.scale * 17) + ') scale(' + d.scale + ')';
+				})
 		}
 
 
@@ -778,7 +703,6 @@
 					svgNode.attr('transform', d3.event.transform)
 				}))
 
-
 		var svgLink = svg.append('g').attr('transform', 'translate(0,0)'),
 			svgLinkHead = svg.append('g').attr('transform', 'translate(0,0)'),
 			svgNode = svg.append('g').attr('transform', 'translate(0,0)');
@@ -796,11 +720,7 @@
 		// Call to update the simulation with initial dataset
 		updateSimulation(nodes);
 
-
 	})();
-	// Anonymous Function end!
-
-
 
 </script>
 
