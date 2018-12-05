@@ -149,12 +149,33 @@
 			width: 100%;
 		}
 
-		/* Shadow in requires different definitions for differect browsers */
-		.shadow {
-			-webkit-box-shadow: 3px 3px 8px 0px rgba(0,0,0, .15);	/* Safari 4+ */
-			   -moz-box-shadow: 3px 3px 8px 0px rgba(0,0,0, .15);	/* Fx 5+ */
-				 -o-box-shadow: 3px 3px 8px 0px rgba(0,0,0, .15);	/* Opera 12+ */
-					box-shadow: 3px 3px 8px 0px rgba(0,0,0, .15);	/* IE 10+, Fx 29+ */
+		#settings {
+			position: relative;
+			margin: 0;
+			top: 100px;
+			width: 200px;
+			z-index: 2;
+		}
+
+		#settings-top {
+			position: absolute;
+			display: block;
+			padding: 5px 10px 5px;
+			border-radius: 0px 10px 10px 0px;
+			border-width: 1px 1px 1px 0px;
+			border-style: solid;
+			border-color: lightgrey;
+			font-size: 20px;
+			background-color: rgb(123, 224, 255);
+			text-align: right;
+			transition: width 5s ease-in-out;
+			-webkit-transition: 5s ease-in-out;
+			-moz-transition: 5s ease-in-out;
+			-o-transition: 5s ease-in-out;
+		}
+
+		#settings:hover {
+			width: 200px;
 		}
 
 	</style>
@@ -163,51 +184,56 @@
 
 <!-- Main HTML -->
 <body>
-	<div id='chart'>
-		<div id='controls'>
-			<div class='search-container'>
-				<div class='search-row'>
-					<input id='search-input' type='text' placeholder="...search all objects"/>
-					<button id='search-button' type='button'>Search</button>
-					<button id='clear-button' type='button'>Clear</button>
-				</div>
-				<div class="search-row">
-					<div>
-						<input id='hover-grouping' name='hovergrouping' type='checkbox' checked>Hover displays closest nodes
-					</div>
-					<div class='compatibility-container'>
-							Compatibility:
-							<select id='compatibility-list'>
-								<option value='all'>All</option>
-								<option disabled='disabled'>----</option>
-								<option value='M'>Macintosh</option>
-								<option value='W'>Windows</option>
-								<option value='I'>iOS</option>
-								<option value='S'>Server</option>
-								<option value='D'>WebDirect</option>
-								<option value='C'>Custom Web Publishing</option>
-							</select><br />
-						</div>
-				</div>
+	<div id='controls'>
+		<div class='search-container'>
+			<div class='search-row'>
+				<input id='search-input' type='text' placeholder="...search all objects"/>
+				<button id='search-button' type='button'>Search</button>
+				<button id='clear-button' type='button'>Clear</button>
 			</div>
-			<div class='force-container'>
-				Force Editor
-				<div class='force-row'>
-					<div class='force-item'>
-						Node Collision
-						<input id='slider-collide' type="range" min="6" max="36" value="21">
+			<div class="search-row">
+				<div>
+					<input id='hover-grouping' name='hovergrouping' type='checkbox' checked>Hover displays closest nodes
+				</div>
+				<div class='compatibility-container'>
+						Compatibility:
+						<select id='compatibility-list'>
+							<option value='all'>All</option>
+							<option disabled='disabled'>----</option>
+							<option value='M'>Macintosh</option>
+							<option value='W'>Windows</option>
+							<option value='I'>iOS</option>
+							<option value='S'>Server</option>
+							<option value='D'>WebDirect</option>
+							<option value='C'>Custom Web Publishing</option>
+						</select><br />
 					</div>
-					<div class='force-item'>
-						Mass Repulsion
-						<input id='slider-manybody' type="range" min="-400" max="400" value="0">
-					</div>
-					<div class='force-item'>
-						Link Distance
-						<input id='slider-distance' type="range" min="-300" max="300" value="0">
-					</div>
+			</div>
+		</div>
+		<div class='force-container'>
+			Force Editor
+			<div class='force-row'>
+				<div class='force-item'>
+					Node Collision
+					<input id='slider-collide' type="range" min="6" max="36" value="21">
+				</div>
+				<div class='force-item'>
+					Mass Repulsion
+					<input id='slider-manybody' type="range" min="-400" max="400" value="0">
+				</div>
+				<div class='force-item'>
+					Link Distance
+					<input id='slider-distance' type="range" min="-300" max="300" value="0">
 				</div>
 			</div>
 		</div>
+	</div>
+	<div id='settings'>
+		<div id='settings-top'>
+			settings
+		</div>
+	</div>
+	<div id='chart'>
 		<div id='tooltip'></div>
 	</div>
 </body>
@@ -218,8 +244,6 @@
 
 	(function () {
 
-var json = {"links":[{"count":3,"source":0,"target":1},{"count":1,"source":2,"target":1},{"count":1,"source":3,"target":1},{"count":1,"source":4,"target":1},{"count":1,"source":4,"target":0},{"count":1,"source":5,"target":3},{"count":3,"source":6,"target":2},{"count":1,"source":8,"target":3},{"count":1,"source":9,"target":1},{"count":1,"source":11,"target":1},{"count":1,"source":12,"target":1},{"count":1,"source":13,"target":0},{"count":1,"source":14,"target":2},{"count":1,"source":15,"target":3}],"nodes":[{"area":26,"db":"Assets","id":0,"name":"Reference script 2 - steps [5] in database Assets","object":"Script","self_reference":0,"size":15},{"area":26,"db":"Assets","id":1,"name":"Reference script - steps [1] in database Assets","object":"Script","self_reference":0,"size":3},{"area":26,"db":"Assets","id":2,"name":"Reference script 3 - steps [2] in database Assets","object":"Script","self_reference":0,"size":6},{"E":2,"area":26,"db":"Assets","id":3,"name":"Reference script 4 - steps [11] in database Assets","object":"Script","self_reference":1,"size":33},{"G":1,"area":16,"db":"Assets","id":4,"name":"Asset List - group [Assets] - objects [19] - in database Assets","object":"Layout","self_reference":0,"size":15},{"E":2,"G":1,"area":16,"db":"Assets","id":5,"name":"Asset Details - group [Assets] - objects [44] - in database Assets","object":"Layout","self_reference":0,"size":15},{"G":1,"area":16,"db":"Assets","id":6,"name":"Vendor List - group [Assets] - objects [11] - in database Assets","object":"Layout","self_reference":0,"size":15},{"E":1,"area":15,"db":"Assets","id":7,"name":"Field - on layout Asset Details in database Assets","object":"Layout Object","self_reference":0,"size":5},{"area":15,"db":"Assets","id":8,"name":"Field | Name - on layout Asset Details in database Assets","object":"Layout Object","self_reference":0,"size":5},{"area":6,"db":"Assets","id":9,"name":"Perform Script [ “Reference script” ] - menu position [1] in database Assets","object":"Custom Menu Item","self_reference":0,"size":10},{"E":1,"area":6,"db":"Assets","id":10,"name":"Perform Script [ “<unknown>” ] - menu position [2] in database Assets","object":"Custom Menu Item","self_reference":0,"size":10},{"area":181,"db":"Assets","id":11,"name":"Database Assets | On First Window Open","object":"File Option","self_reference":0,"size":20},{"area":181,"db":"Assets","id":12,"name":"Database Assets | On Last Window Close","object":"File Option","self_reference":0,"size":20},{"area":181,"db":"Assets","id":13,"name":"Database Assets | On Window Open","object":"File Option","self_reference":0,"size":20},{"area":181,"db":"Assets","id":14,"name":"Database Assets | On Window Close","object":"File Option","self_reference":0,"size":20},{"area":181,"db":"Assets","id":15,"name":"Database Assets | On File AV Player Change","object":"File Option","self_reference":0,"size":20},{"area":26,"db":"Assets","id":16,"name":"Go to Entry Field - steps [2] in database Assets","object":"Script","self_reference":0,"size":6},{"area":26,"db":"Assets","id":17,"name":"Add Related Record - steps [3] in database Assets","object":"Script","self_reference":0,"size":9},{"area":26,"db":"Assets","id":18,"name":"unref - steps [2] in database Assets","object":"Script","self_reference":0,"size":6},{"area":26,"db":"Assets","id":19,"name":"UNREFERENCED_SCRIPT!!! - steps [0] in database Assets","object":"Script","self_reference":0,"size":0},{"area":26,"db":"Assets","id":20,"name":"Anotad - steps [1] in database Assets","object":"Script","self_reference":0,"size":3},{"area":26,"db":"Assets","id":21,"name":"UNREF - steps [0] in database Assets","object":"Script","self_reference":0,"size":0}]}
-
 		if (!json.nodes || json.nodes.length === 0) {
 			return ;
 		}
@@ -227,6 +251,9 @@ var json = {"links":[{"count":3,"source":0,"target":1},{"count":1,"source":2,"ta
 		var nodes = json.nodes.filter(function(f){ return f.db !== "" }),
 			links = json.links.filter(function(f){ return f.db !== "" }),
 			databaseMap = {};
+
+		// links = []; // DELETE
+		// nodes = nodes.slice(1, 100); // DELETE
 
 		// Build database Map in order to choose colors
 		for (var i = 0, num = 1 ; i < nodes.length ; ++i) {
@@ -424,7 +451,7 @@ var json = {"links":[{"count":3,"source":0,"target":1},{"count":1,"source":2,"ta
 		}
 
 		function onNodeClick(data) {
-			console.log("NODE data\n", data);
+			console.log("NODE data\n", data, d3.select(this));
 
 			// Add fmScript to script-list-item
 			fmScript.addVariable({ node: data });
@@ -468,7 +495,8 @@ var json = {"links":[{"count":3,"source":0,"target":1},{"count":1,"source":2,"ta
 			}
 
 			// show tooltip
-			tooltip.html(data.object + "<br/>" + data.name + "<br/>")
+			var warning = data.E ? '⚠️ ' : '';
+			tooltip.html(warning + data.object + "<br/>" + data.name + "<br/>")
 					.style("left", (d3.event.pageX + 25) + "px")
 					.style("top", (d3.event.pageY - 50) + "px")
 					.transition().duration(200).style("opacity", .9);
@@ -620,10 +648,11 @@ var json = {"links":[{"count":3,"source":0,"target":1},{"count":1,"source":2,"ta
 			});
 
 			// Add the groupId to unlinked nodes
-			node.each(function(d){ if (d.group === 0) d.group = ++groupId;});
+			node.each(function(d){ d.group = (d.group === 0) ? ++groupId : d.group });
 
             // Clean map
 			delete visited;
+
 			// Other Attribute Initialization
 			link.attr('stroke', function(l){ return color(databaseMap[l.source.db] % 10)})
 				.attr('stroke-width', settings.linkStrokeWidth);
@@ -636,10 +665,16 @@ var json = {"links":[{"count":3,"source":0,"target":1},{"count":1,"source":2,"ta
 			})
 
 			node.each(function(d){
-				var curNode = d3.select(this);
-				if (d.selected === true) curNode.attr('stroke', 'red').attr('stroke-width', '1.5px');
-				else curNode.attr('stroke', 'white').attr('stroke-width', '0.75px');
-				curNode.attr('fill', function(d){ return color(databaseMap[d.db] % 10) });
+				d3.select(this)
+					.attr('fill', function(d){
+						return color(databaseMap[d.db] % 10)
+					})
+					.attr('stroke', function(d){
+						return d.E ? 'red' : 'white';
+					})
+					.attr('stroke-width', function(d){
+						return 0.75
+					});
             });
 		};
 
