@@ -248,12 +248,9 @@
 			return ;
 		}
 
-		var nodes = json.nodes.filter(function(f){ return f.db !== "" }),
-			links = json.links.filter(function(f){ return f.db !== "" }),
+		var nodes = json.nodes,
+			links = json.links,
 			databaseMap = {};
-
-		// links = []; // DELETE
-		// nodes = nodes.slice(1, 100); // DELETE
 
 		// Build database Map in order to choose colors
 		for (var i = 0, num = 1 ; i < nodes.length ; ++i) {
@@ -335,16 +332,19 @@
 		// slider functionality
 		d3.select('#slider-collide').on('input', function(){
 			const value = this.value;
+			console.log(this.value);
 			simulation.force('collide', d3.forceCollide(function(d){ return sizescale(d.size) * value }))
 			simulation.alpha(alphaTarget / 3.5).restart();
 		})
 		d3.select('#slider-manybody').on('input', function(){
 			const value = -400 - this.value;
+			console.log(value);
 			simulation.force('manyBody', d3.forceManyBody().strength(value));
 			simulation.alpha(alphaTarget / 3.5).restart();
 		})
 		d3.select('#slider-distance').on('input', function(){
 			const value = this.value;
+			console.log(this.value);
 			simulation.force('link', d3.forceLink(links).distance(value));
 			simulation.alpha(alphaTarget / 3.5).restart();
 		})
@@ -547,11 +547,18 @@
 		// UPDATE FUNCTION DECLARATIONS
 		// ------------------------------------------------------------------------------------------------------------
 
+		// Selects all .nodes
+		// Adds newNodes to it's internal DATA store
+		// enter() returns the selection of elements not yet added to the DOM. It calculates the amount of empty DOM nodes needed to fill the inner DATA store
+		// append...call applies all the things to each new DOM element created with append
+		// merge takes the current selection of all 'appended' DOM elements and returns a new selection which is a combination of the initial DOM elements and the new ones
+		// everything after merge applies to the new merged selection
+
 		function updateNodes(newNodes) {
 			// Update, Enter, Exit pattern
 			var myNodes = svgNode.selectAll('.node').data(newNodes);
-			var nodeEnter = myNodes.enter().append('path')
-				.attr('d', attrPathType)
+			myNodes.exit().remove()
+			var newSelection = myNodes.enter().append('path')
 				.attr('class', 'node')
 				.on('click', onNodeClick)
 				.on('mouseover', onNodeOver)
@@ -560,9 +567,9 @@
 					.on('start', dragStart)
 					.on('drag', dragged)
 					.on('end', dragEnd))
-			myNodes.exit().remove();
-			myNodes = nodeEnter.merge(myNodes);
-			return myNodes;
+				.merge(myNodes)
+				.attr('d', attrPathType)
+			return newSelection;
 		}
 
 		function updateLinks(newLinks) {
