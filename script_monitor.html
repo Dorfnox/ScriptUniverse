@@ -4,23 +4,23 @@
   <title>Script Monitor</title>
 
   <!-- d3 5.7 -->
-  <script type='text/javascript' src='d3.js'></script>
-  <!-- ‡‡D3_LINK‡‡ -->
+  <!-- <script type='text/javascript' src='d3.js'></script> -->
+  ‡‡D3_LINK‡‡
 
   <!-- data.js -->
-  <script type='text/javascript' src='data.js'></script>
-  <!-- ‡‡DATA_LINK‡‡ -->
+  <!-- <script type='text/javascript' src='data.js'></script> -->
+  ‡‡DATA_LINK‡‡
 
   <!-- fm.js -->
-  <script type='text/javascript' src='fm.js'></script>
-  <!-- ‡‡FM_LINK‡‡ -->
+  <!-- <script type='text/javascript' src='fm.js'></script> -->
+  ‡‡FM_LINK‡‡
 
   <style type='text/css'>
     html,
     body {
       margin: 0;
       overflow: hidden;
-      font: 22px "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
+      font: 16px "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
       width: 100%;
       height: 100%;
     }
@@ -84,34 +84,33 @@
 
     #settings-title {
       text-align: left;
-      font-size: 30px;
-      padding: 20px;
-      border-bottom: 2px solid navy;
+      font-size: 20px;
+      padding: 10px;
+      border-bottom: 1px solid navy;
+      font-weight: bold;
     }
 
     #settings-sliders {
       display: flex;
       flex-direction: column;
       padding: 5px;
-      margin-top: 10px;
-      color: #000998;
     }
     #settings-sliders input {
       -webkit-appearance: none;
       appearance: none;
-      height: 20px;
+      height: 8px;
       background: #0f0788;
       outline: none;
       opacity: 0.7;
       -webkit-transition: .2s;
       transition: .2s;
-      border-radius: 30px;
-      margin-bottom: 10px;
+      border-radius: 10px;
+      margin: 4px 0px;
     }
     #settings-sliders input:hover {
-      background: #0f00f1;
-      height: 30px;
-      margin-bottom: 5px;
+      background: #1538d6;
+      height: 16px;
+      margin: 0px;
     }
 
     #settings-checkboxes {
@@ -132,7 +131,7 @@
     #settings-buttons button {
       background-color: azure;
       flex-grow: 1;
-      height: 40px;
+      height: 30px;
       margin: 0px 5px;
     }
 
@@ -161,7 +160,6 @@
 <script type='text/javascript'>
 
   (function () {
-
     // Validate json in data.js
     if (!json.nodes || json.nodes.length === 0) {
       return;
@@ -684,18 +682,11 @@
         'db-split': { value: false },
         'mute': { value: false },
       };
-      // Incomming settings
-      const { forceSettings } = json;
 
-      // Update defaults
-      if (forceSettings) {
-        Object.keys(defaultForceSettings).forEach(dfs => {
-          const { value } = forceSettings[dfs];
-          if (typeof value !== 'undefined') {
-            defaultForceSettings[dfs].value = value;
-          }
-        });
-      }
+      // Overwrite defaults with given force_settings values
+      Object.keys(json.force_settings).forEach(fs => {
+        defaultForceSettings[fs].value = json.force_settings[fs].value;
+      });
 
       return defaultForceSettings;
     }
@@ -727,41 +718,41 @@
         });
       d3.select('#slider-many-body').on('input', function () {
         const value = parseInt(this.value);
-        forceSettings['many-body'] = value;
+        forceSettings['many-body'].value = this.value;
         simulation.force('many-body', getForceManyBody(value * -1)).alpha(0.3).restart();
       })
       d3.select('#slider-node-distance').on('input', function () {
         const distance = parseFloat(this.value),
           strength = forceSettings['node-strength'].value;
-        forceSettings['node-distance'].value = distance;
+        forceSettings['node-distance'].value = this.value;
         simulation.force('node', getForceNode(distance, strength)).alpha(0.3).restart();
       })
       d3.select('#slider-node-strength').on('input', function () {
         const distance = forceSettings['node-distance'].value,
           strength = parseFloat(this.value);
-        forceSettings['node-strength'].value = strength;
+        forceSettings['node-strength'].value = this.value;
         simulation.force('node', getForceNode(distance, strength)).alpha(0.3).restart();
       })
       d3.select('#slider-link-distance').on('input', function () {
         const distance = parseFloat(this.value),
           strength = forceSettings['link-strength'].value;
-        forceSettings['link-distance'].value = distance;
+        forceSettings['link-distance'].value = this.value;
         simulation.force('link', getForceLink(distance, strength)).alpha(0.3).restart();
       })
       d3.select('#slider-link-strength').on('input', function () {
         const distance = forceSettings['link-distance'].value,
           strength = parseFloat(this.value);
-        forceSettings['link-strength'].value = strength;
+        forceSettings['link-strength'].value = this.value;
         simulation.force('link', getForceLink(distance, strength)).alpha(0.3).restart();
       })
       d3.select('#slider-x-strength').on('input', function () {
         const strength = parseFloat(this.value);
-        forceSettings['x-strength'].value = strength;
+        forceSettings['x-strength'].value = this.value;
         simulation.force('x', getForceX(strength)).alpha(0.3).restart();
       })
       d3.select('#slider-y-strength').on('input', function () {
         const strength = parseFloat(this.value);
-        forceSettings['y-strength'].value = strength;
+        forceSettings['y-strength'].value = this.value;
         simulation.force('y', getForceY(strength)).alpha(0.3).restart();
       })
 
@@ -799,12 +790,12 @@
       settingsButtons.append('button')
         .attr('id', 'settings-cancel')
         .text('Cancel')
-        .on('click', () => db.script('cancel').run())
+        .on('click', () => db.script('wv script monitor | cancel (...)').run())
       settingsButtons.append('button')
         .attr('id', 'settings-save')
         .text('Save')
         .on('click', () => {
-          const saveScript = db.script('...');
+          const saveScript = db.script('wv script monitor | save (...)');
           saveScript.setParameter(JSON.stringify({
             "ID_SCRIPT_MONITOR": json.id_script_monitor,
             "FORCE_SETTINGS": {
@@ -877,7 +868,6 @@
     // Update Forces
     var forceSettings = initForceSettings();
 
-    json.show_force_settings = true; // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~DEBUGGING~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     if (json.show_force_settings) {
       initForceSettingsDOM();
     }
