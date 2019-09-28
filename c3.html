@@ -1,3 +1,4 @@
+data:text/html,
 <!DOCTYPE html>
 
 <head>
@@ -86,7 +87,7 @@
       <div id='options'></div>
   </div>
   <script>
-    /* Example data being passed in */
+    /* Example data being passed in*/
     const analysis = Object.freeze({
       total: {
         item: {
@@ -120,8 +121,8 @@
           data: [30, 15, 14, 12, 1, 5]
         }
       }
-    });
-    // const analysis = Object.freeze(__ANALYSIS_DATA__);
+    });/*
+    const analysis = Object.freeze(" & SOLUTION__FOCUS::C3_ANALYSIS_DATA & ");*/
     const problemData = [
       {
         label: analysis.total.problem.label,
@@ -223,22 +224,22 @@
     }
 
     function buildProblemCheckboxes() {
-      const problemDivs = d3.select('#options')
+      d3.select('#options')
         .append('div')
           .attr('class', 'problem-group')
         .selectAll('div')
         .data(problemData)
         .enter()
           .append('div')
-          .attr('class', 'problem-group-item')
+          .attr('class', 'problem-group-item');
 
-      problemDivs.append('input')
+      d3.selectAll('.problem-group-item').append('input')
         .attr('type', 'checkbox')
         .attr('class', 'problem-input')
         .attr('id', (d, i) => `problem-input-${i}`)
         .on('click', toggleProblemSpline);
 
-      problemDivs.append('label')
+      d3.selectAll('.problem-group-item').append('label')
         .attr('class', 'problem-label')
         .attr('id', (d, i) => `problem-label-${i}`)
         .attr('for', (d, i) => `problem-input-${i}`)
