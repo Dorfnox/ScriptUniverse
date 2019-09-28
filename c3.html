@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+
+<head>
+  <!-- Load c3.css -->
+  <link
+    href='https://rawgit.com/masayuki0812/c3/master/c3.css'
+    rel='stylesheet'
+    type='text/css'
+  />
+
+  <!-- Load d3.js and c3.js -->
+  <script src='https://d3js.org/d3.v5.min.js' charset='utf-8'></script>
+  <script src='https://rawgit.com/masayuki0812/c3/master/c3.js'></script>
+
+  <style>
+    html, body {
+      margin: 10px;
+      font-family: Helvetica;
+    }
+    button {
+      cursor: pointer;
+      outline: none;
+      background-color: #2196F3;
+      color: white;
+      border: 2px solid azure;
+      border-radius: 8px;
+      font-size: 16px;
+      padding: 10px 20px;
+    }
+    input[type='checkbox'] {
+      -webkit-appearance: none;
+      outline: none;
+      cursor: pointer;
+      height: 24px;
+      width: 24px;
+      background-color: #eee;
+      border-radius: 20px;
+    }
+    input[type='checkbox']:hover {
+      background-color: #ccc;
+    }
+    input[type='checkbox']:checked {
+      background-color: #2196F3;
+    }
+
+    #options {
+      display: flex;
+      align-items: center;
+      border: 1px solid #BBBBBB;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 4px 4px 8px #bbbbbb;
+    }
+    .problem-group {
+      display: flex;
+      align-items: center;
+    }
+    .problem-group-item {
+      padding: 5px;
+      display: flex;
+      align-items: center;
+    }
+    .problem-label {
+      cursor: pointer;
+    }
+
+    .c3-line {
+      stroke-width: 2px;
+    }
+    .c3-circle {
+      r: 4.5px;
+    }
+    .c3-area {
+      opacity: 0.1;
+    }
+  </style>
+</head>
+
+<body>
+  <div id='chart'></div>
+  <div id='options'></div>
+  <script>
+    const analysis = Object.freeze({
+      total: {
+        item: {
+          label: 'Total Items',
+          data: [1000, 1800, 1400, 1555, 1500, 1623]
+        },
+        calculation: {
+          label: 'Total Calculations',
+          data: [500, 600, 700, 705, 770, 800]
+        },
+        dependency: {
+          label: 'Total Dependencies',
+          data: [60, 70, 100, 90, 70, 120]
+        },
+        problem: {
+          label: 'Total Problems',
+          data: [100, 120, 130, 155, 90, 45]
+        }
+      },
+      problem: {
+        calculations: {
+          label: 'Calculation Problems',
+          data: [2, 5, 12, 53, 0, 12]
+        },
+        scripts: {
+          label: 'Script Problems',
+          data: [0, 0, 0, 100, 20, 0]
+        },
+        layout_objects: {
+          label: 'Layout Object Problems',
+          data: [30, 15, 14, 12, 1, 5]
+        }
+      }
+    });
+    const problemData = [
+      {
+        label: analysis.total.problem.label,
+        data: analysis.total.problem.data,
+      },
+      ...Object.keys(analysis.problem).map(key => {
+          return {
+            label: analysis.problem[key].label,
+            data: analysis.problem[key].data,
+          };
+        }
+      )
+    ];
+    const analysis_total_labels = Object.keys(analysis.total).map(key => analysis.total[key].label);
+    const analysis_problem_labels = Object.keys(analysis.problem).map(key => analysis.problem[key].label);
+
+    var chart = c3.generate({
+      bindto: '#chart',
+      data: {
+        columns: [
+          [analysis.total.item.label, ...analysis.total.item.data],
+          [analysis.total.calculation.label, ...analysis.total.calculation.data],
+          [analysis.total.dependency.label, ...analysis.total.dependency.data]
+        ],
+        type: 'bar',
+        types: {
+          'Total Items': 'bar',
+          'Total Calculations': 'bar',
+          'Total Dependencies': 'bar',
+          'Total Problems': 'area-spline',
+
+          'Calculation Problems': 'spline',
+          'Script Problems': 'spline',
+          'Layout Object Problems': 'spline'
+        },
+        axes: {
+          'Total Items': 'y',
+          'Total Calculations': 'y',
+          'Total Dependencies': 'y',
+          'Total Problems': 'y2',
+
+          'Calculation Problems': 'y2',
+          'Script Problems': 'y2',
+          'Layout Object Problems': 'y2'
+        }
+      },
+      axis: {
+        y: {
+          label: {
+            text: '# of Items',
+            position: 'outer-middle'
+          }
+        },
+        y2: {
+          show: true,
+          label: {
+            text: '# of Problems',
+            position: 'outer-middle'
+          }
+        },
+        x: {
+          label: {
+            text: 'Analysis #',
+            position: 'center'
+          }
+        }
+      }
+    });
+
+    buildGroupButton();
+
+    buildProblemCheckboxes();
+
+    // ~~~~~~~~~~~~~~~~~~~~~~~~ Functions
+
+    function buildGroupButton() {
+      d3.select('#options')
+        .append('button')
+        .text('Group')
+        .on('click', function() {
+          const button = d3.select(this);
+          if (button.text() === 'Group') {
+            chart.groups([analysis_total_labels.filter(x => x !== 'Total Problems')]);
+            button.text('Ungroup');
+          } else {
+            chart.groups([[]]);
+            button.text('Group');
+          }
+        });
+
+      d3.select('#options').append('br');
+    }
+
+    function buildProblemCheckboxes() {
+      const problemDivs = d3.select('#options')
+        .append('div')
+          .attr('class', 'problem-group')
+        .selectAll('div')
+        .data(problemData)
+        .enter()
+          .append('div')
+          .attr('class', 'problem-group-item')
+
+      problemDivs.append('input')
+        .attr('type', 'checkbox')
+        .attr('class', 'problem-input')
+        .attr('id', (d, i) => `problem-input-${i}`)
+        .on('click', toggleProblemSpline);
+
+      problemDivs.append('label')
+        .attr('class', 'problem-label')
+        .attr('id', (d, i) => `problem-label-${i}`)
+        .attr('for', (d, i) => `problem-input-${i}`)
+        .text(d => d.label);
+
+      function toggleProblemSpline(problem) {
+        const checkbox = d3.select(this);
+        const checked = checkbox.property('checked');
+        if (checked) {
+          checkbox.property('checked', true);
+          chart.load({
+            columns: [[problem.label, ...problem.data]],
+          });
+        }
+        else {
+          checkbox.property('checked', false);
+          chart.unload({
+            ids: [problem.label],
+          });
+        }
+      }
+    }
+  </script>
+</body>
