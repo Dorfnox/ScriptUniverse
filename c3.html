@@ -43,6 +43,11 @@
       background-color: #2196F3;
     }
 
+    #c3-inspector-pro {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
     #options {
       display: flex;
       align-items: center;
@@ -77,8 +82,10 @@
 </head>
 
 <body>
-  <div id='chart'></div>
-  <div id='options'></div>
+  <div id='c3-inspector-pro'>
+      <div id='chart'></div>
+      <div id='options'></div>
+  </div>
   <script>
     const analysis = Object.freeze({
       total: {
@@ -129,14 +136,19 @@
     ];
     const analysis_total_labels = Object.keys(analysis.total).map(key => analysis.total[key].label);
     const analysis_problem_labels = Object.keys(analysis.problem).map(key => analysis.problem[key].label);
+    const x_axis_array = Array.from(Array(analysis.total.item.data.length), (_, i) => i + 1);
 
     var chart = c3.generate({
       bindto: '#chart',
+      title: {
+        text: 'Analysis Graph'
+      },
       data: {
         columns: [
           [analysis.total.item.label, ...analysis.total.item.data],
           [analysis.total.calculation.label, ...analysis.total.calculation.data],
-          [analysis.total.dependency.label, ...analysis.total.dependency.data]
+          [analysis.total.dependency.label, ...analysis.total.dependency.data],
+          ['x', ...x_axis_array],
         ],
         type: 'bar',
         types: {
@@ -158,7 +170,8 @@
           'Calculation Problems': 'y2',
           'Script Problems': 'y2',
           'Layout Object Problems': 'y2'
-        }
+        },
+        x: 'x',
       },
       axis: {
         y: {
@@ -178,7 +191,7 @@
           label: {
             text: 'Analysis #',
             position: 'center'
-          }
+          },
         }
       }
     });
@@ -192,15 +205,15 @@
     function buildGroupButton() {
       d3.select('#options')
         .append('button')
-        .text('Group')
+        .text('Group Data')
         .on('click', function() {
           const button = d3.select(this);
-          if (button.text() === 'Group') {
+          if (button.text() === 'Group Data') {
             chart.groups([analysis_total_labels.filter(x => x !== 'Total Problems')]);
-            button.text('Ungroup');
+            button.text('Ungroup Data');
           } else {
             chart.groups([[]]);
-            button.text('Group');
+            button.text('Group Data');
           }
         });
 
