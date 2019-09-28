@@ -58,7 +58,6 @@
     }
     .problem-group {
       display: flex;
-      align-items: center;
     }
     .problem-group-item {
       padding: 5px;
@@ -87,6 +86,7 @@
       <div id='options'></div>
   </div>
   <script>
+    /* Example data being passed in */
     const analysis = Object.freeze({
       total: {
         item: {
@@ -107,20 +107,21 @@
         }
       },
       problem: {
-        calculations: {
+        calculation: {
           label: 'Calculation Problems',
           data: [2, 5, 12, 53, 0, 12]
         },
-        scripts: {
+        script: {
           label: 'Script Problems',
           data: [0, 0, 0, 100, 20, 0]
         },
-        layout_objects: {
+        layout_object : {
           label: 'Layout Object Problems',
           data: [30, 15, 14, 12, 1, 5]
         }
       }
     });
+    // const analysis = Object.freeze(__ANALYSIS_DATA__);
     const problemData = [
       {
         label: analysis.total.problem.label,
@@ -155,6 +156,7 @@
           'Total Items': 'bar',
           'Total Calculations': 'bar',
           'Total Dependencies': 'bar',
+
           'Total Problems': 'area-spline',
 
           'Calculation Problems': 'spline',
@@ -200,7 +202,7 @@
 
     buildProblemCheckboxes();
 
-    // ~~~~~~~~~~~~~~~~~~~~~~~~ Functions
+    /* ~~~~~~~~~~~~~~~ Functions ~~~~~~~~~~~~~~~ */
 
     function buildGroupButton() {
       d3.select('#options')
