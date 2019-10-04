@@ -14,28 +14,35 @@ data:text/html,
   <script src='https://rawgit.com/masayuki0812/c3/master/c3.js'></script>
 
   <style>
+    /* ~~~~~ General CSS ~~~~~ */
     html, body {
       margin: 10px;
       font-family: Helvetica;
+      font-size: 12px; 
     }
     button {
       cursor: pointer;
       outline: none;
-      background-color: #2196F3;
+      background-image: linear-gradient(to bottom, #60ACFB, #1785FF);
       color: white;
-      border: 2px solid azure;
-      border-radius: 8px;
-      font-size: 16px;
-      padding: 10px 20px;
+      border: 1px solid #BBBBBB;
+      border-radius: 4px;
+      padding: 8px 16px;
+    }
+    button:hover {
+      color: #C0EDFE;
+    }
+    button:focus {
+      background-image: linear-gradient(to bottom, #2F92FD, #025FFF);
     }
     input[type='checkbox'] {
       -webkit-appearance: none;
       outline: none;
       cursor: pointer;
-      height: 24px;
-      width: 24px;
+      height: 16px;
+      width: 16px;
       background-color: #eee;
-      border-radius: 20px;
+      border-radius: 16px;
     }
     input[type='checkbox']:hover {
       background-color: #ccc;
@@ -44,6 +51,7 @@ data:text/html,
       background-color: #2196F3;
     }
 
+    /* ~~~~~ General CSS ~~~~~ */
     #c3-inspector-pro {
       display: flex;
       flex-direction: column;
@@ -52,10 +60,10 @@ data:text/html,
     #options {
       display: flex;
       align-items: center;
-      border: 1px solid #BBBBBB;
-      border-radius: 8px;
-      padding: 10px;
-      box-shadow: 4px 4px 8px #bbbbbb;
+      /* border: 0.5px solid #BBBBBB; */
+      /* border-radius: 8px; */
+      /* padding: 8px; */
+      /* box-shadow: 4px 4px 8px #bbbbbb; */
     }
     .problem-group {
       display: flex;
@@ -78,16 +86,19 @@ data:text/html,
     .c3-area {
       opacity: 0.1;
     }
+    .c3-axis path, .c3-axis line {
+      stroke: #BBBBBB;
+    }
   </style>
 </head>
 
 <body>
   <div id='c3-inspector-pro'>
-      <div id='chart'></div>
-      <div id='options'></div>
+    <div id='chart'></div>
+    <div id='options'></div>
   </div>
   <script>
-    /* Example data being passed in*/
+    /* Example data being passed in */
     const analysis = Object.freeze({
       total: {
         item: {
@@ -121,8 +132,8 @@ data:text/html,
           data: [30, 15, 14, 12, 1, 5]
         }
       }
-    });/*
-    const analysis = Object.freeze(" & SOLUTION__FOCUS::C3_ANALYSIS_DATA & ");*/
+    });
+    // const analysis = Object.freeze(" & SOLUTION__FOCUS::C3_ANALYSIS_DATA & ");
     const problemData = [
       {
         label: analysis.total.problem.label,
@@ -138,41 +149,48 @@ data:text/html,
     ];
     const analysis_total_labels = Object.keys(analysis.total).map(key => analysis.total[key].label);
     const analysis_problem_labels = Object.keys(analysis.problem).map(key => analysis.problem[key].label);
-    const x_axis_array = Array.from(Array(analysis.total.item.data.length), (_, i) => i + 1);
+    const analysis_number = Array.from(Array(analysis.total.item.data.length), (_, i) => i + 1);
 
     var chart = c3.generate({
       bindto: '#chart',
       title: {
-        text: 'Analysis Graph'
+        text: 'Analysis Health Over Time'
+      },
+      size: {
+        height: window.innerHeight * 0.9,
       },
       data: {
         columns: [
-          [analysis.total.item.label, ...analysis.total.item.data],
+          /* [analysis.total.item.label, ...analysis.total.item.data],
           [analysis.total.calculation.label, ...analysis.total.calculation.data],
           [analysis.total.dependency.label, ...analysis.total.dependency.data],
-          ['x', ...x_axis_array],
+
+          [analysis.total.problem.label, ...analysis.total.problem.data],
+          [analysis.problem.calculation.label, ...analysis.problem.calculation.data],
+          [analysis.problem.script.label, ...analysis.problem.script.data],
+          [analysis.problem.layout_object.label, ...analysis.problem.layout_object.data],
+          ['x', ...analysis_number], */
         ],
         type: 'bar',
         types: {
-          'Total Items': 'bar',
-          'Total Calculations': 'bar',
-          'Total Dependencies': 'bar',
+          [analysis.total.item.label]: 'bar',
+          [analysis.total.calculation.label]: 'bar',
+          [analysis.total.dependency.label]: 'bar',
+          [analysis.total.problem.label]: 'area-spline',
 
-          'Total Problems': 'area-spline',
-
-          'Calculation Problems': 'spline',
-          'Script Problems': 'spline',
-          'Layout Object Problems': 'spline'
+          [analysis.problem.calculation.label]: 'spline',
+          [analysis.problem.script.label]: 'spline',
+          [analysis.problem.layout_object.label]: 'spline',
         },
         axes: {
-          'Total Items': 'y',
-          'Total Calculations': 'y',
-          'Total Dependencies': 'y',
-          'Total Problems': 'y2',
+          [analysis.total.item.label]: 'y',
+          [analysis.total.calculation.label]: 'y',
+          [analysis.total.dependency.label]: 'y',
+          [analysis.total.problem.label]: 'y2',
 
-          'Calculation Problems': 'y2',
-          'Script Problems': 'y2',
-          'Layout Object Problems': 'y2'
+          [analysis.problem.calculation.label]: 'y2',
+          [analysis.problem.script.label]: 'y2',
+          [analysis.problem.layout_object.label]: 'y2',
         },
         x: 'x',
       },
@@ -181,13 +199,22 @@ data:text/html,
           label: {
             text: '# of Items',
             position: 'outer-middle'
-          }
+          },
+          tick: {
+            format: d3.format(',.0f'),
+            count: d3.min([6, d3.max([...analysis.total.item.data, 1])]),
+          },
         },
         y2: {
           show: true,
           label: {
             text: '# of Problems',
             position: 'outer-middle'
+          },
+          tick: {
+            format: d3.format(',.0f'),
+            count: d3.min([6, d3.max([...analysis.total.problem.data, 1])]),
+            min: 0,
           }
         },
         x: {
@@ -195,13 +222,20 @@ data:text/html,
             text: 'Analysis #',
             position: 'center'
           },
+          tick: {
+            format: d3.format(','),
+          },
         }
-      }
+      },
     });
 
     buildGroupButton();
 
-    buildProblemCheckboxes();
+    /* buildProblemCheckboxes(); */
+
+    hideProblems(0);
+
+    delayLoadData(700, 100);
 
     /* ~~~~~~~~~~~~~~~ Functions ~~~~~~~~~~~~~~~ */
 
@@ -209,18 +243,19 @@ data:text/html,
       d3.select('#options')
         .append('button')
         .text('Group Data')
-        .on('click', function() {
-          const button = d3.select(this);
-          if (button.text() === 'Group Data') {
-            chart.groups([analysis_total_labels.filter(x => x !== 'Total Problems')]);
-            button.text('Ungroup Data');
-          } else {
-            chart.groups([[]]);
-            button.text('Group Data');
-          }
-        });
+        .on('click', groupTotalData);
 
-      d3.select('#options').append('br');
+      function groupTotalData() {
+        const button = d3.select(this);
+        if (button.text() === 'Group Data') {
+          chart.groups([analysis_total_labels.filter(x => x !== 'Total Problems')]);
+          button.text('Ungroup Data');
+        } else {
+          chart.groups([[]]);
+          button.text('Group Data');
+        }
+        this.blur();
+      }
     }
 
     function buildProblemCheckboxes() {
@@ -235,6 +270,7 @@ data:text/html,
 
       d3.selectAll('.problem-group-item').append('input')
         .attr('type', 'checkbox')
+        .property('checked', d => d.label === 'Total Problems' ? true : false)
         .attr('class', 'problem-input')
         .attr('id', (d, i) => `problem-input-${i}`)
         .on('click', toggleProblemSpline);
@@ -261,6 +297,28 @@ data:text/html,
           });
         }
       }
+    }
+
+    function hideProblems(delayInterval = 0) {
+      setTimeout(() => chart.hide(analysis.problem.calculation.label), delayInterval);
+      setTimeout(() => chart.hide(analysis.problem.script.label), delayInterval * 2);
+      setTimeout(() => chart.hide(analysis.problem.layout_object.label), delayInterval * 3);
+    }
+
+    function delayLoadData(duration = 700, delayInterval = 100) {
+      setTimeout(() => chart.flow({
+        columns: [
+          [analysis.total.item.label, ...analysis.total.item.data],
+          [analysis.total.calculation.label, ...analysis.total.calculation.data],
+          [analysis.total.dependency.label, ...analysis.total.dependency.data],
+          [analysis.total.problem.label, ...analysis.total.problem.data],
+          [analysis.problem.calculation.label, ...analysis.problem.calculation.data],
+          [analysis.problem.script.label, ...analysis.problem.script.data],
+          [analysis.problem.layout_object.label, ...analysis.problem.layout_object.data],
+          ['x', ...analysis_number],
+        ],
+        duration: duration,
+      }), delayInterval);
     }
   </script>
 </body>
