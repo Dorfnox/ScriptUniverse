@@ -199,18 +199,17 @@
 
     // Build database Map in order to choose colors
     var databaseCount = 0;
-    var databaseMap = (function () {
+		var databaseMap = (function () {
       var databaseMap = {};
       for (var i = 0, num = 0; i < nodes.length; ++i) {
         if (databaseMap[nodes[i].db] === undefined) {
           databaseMap[nodes[i].db] = num;
-          num += 1;
-          num %= 10;
+          num = (num + 1) % 10;
           databaseCount += 1;
         }
       }
-      return databaseMap
-    })();
+      return databaseMap;
+		})();
 
     // Build colors
     var color = d3.schemeCategory10;
@@ -458,7 +457,6 @@
       else if (g < 0) g = 0;
 
       return '#' + (g | (b << 8) | (r << 16)).toString(16);
-
     }
     function linkColor(l) {
       return LightenDarkenColorHex(color[databaseMap[l.source.db]], 40);

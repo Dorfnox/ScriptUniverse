@@ -51,7 +51,7 @@ data:text/html,
       background-color: #2196F3;
     }
 
-    /* ~~~~~ General CSS ~~~~~ */
+    /* ~~~~~ Custom CSS ~~~~~ */
     #c3-inspector-pro {
       display: flex;
       flex-direction: column;
@@ -60,10 +60,10 @@ data:text/html,
     #options {
       display: flex;
       align-items: center;
-      /* border: 0.5px solid #BBBBBB; */
-      /* border-radius: 8px; */
-      /* padding: 8px; */
-      /* box-shadow: 4px 4px 8px #bbbbbb; */
+      /* border: 0.5px solid #BBBBBB;
+      border-radius: 8px;
+      padding: 8px;
+      box-shadow: 4px 4px 8px #bbbbbb; */
     }
     .problem-group {
       display: flex;
@@ -77,6 +77,7 @@ data:text/html,
       cursor: pointer;
     }
 
+    /* ~~~~~ C3 CSS ~~~~~ */
     .c3-line {
       stroke-width: 2px;
     }
@@ -98,7 +99,7 @@ data:text/html,
     <div id='options'></div>
   </div>
   <script>
-    /* Example data being passed in */
+    /* Example data being passed in
     const analysis = Object.freeze({
       total: {
         item: {
@@ -132,8 +133,8 @@ data:text/html,
           data: [30, 15, 14, 12, 1, 5]
         }
       }
-    });
-    // const analysis = Object.freeze(" & SOLUTION__FOCUS::C3_ANALYSIS_DATA & ");
+    });*/
+    const analysis = Object.freeze(" & SOLUTION__FOCUS::C3_ANALYSIS_DATA & ");
     const problemData = [
       {
         label: analysis.total.problem.label,
@@ -150,6 +151,7 @@ data:text/html,
     const analysis_total_labels = Object.keys(analysis.total).map(key => analysis.total[key].label);
     const analysis_problem_labels = Object.keys(analysis.problem).map(key => analysis.problem[key].label);
     const analysis_number = Array.from(Array(analysis.total.item.data.length), (_, i) => i + 1);
+    const zero_helpyer = Array.from(Array(analysis.total.item.data.length), _ => 0);
 
     var chart = c3.generate({
       bindto: '#chart',
@@ -157,19 +159,26 @@ data:text/html,
         text: 'Analysis Health Over Time'
       },
       size: {
-        height: window.innerHeight * 0.9,
+        height: window.innerHeight * 0.8,
+      },
+      transition: {
+        duration: 700,
+      },
+      padding: {
+        right: 60,
+        left: 60,
       },
       data: {
         columns: [
-          /* [analysis.total.item.label, ...analysis.total.item.data],
+          [analysis.total.item.label, ...analysis.total.item.data],
           [analysis.total.calculation.label, ...analysis.total.calculation.data],
           [analysis.total.dependency.label, ...analysis.total.dependency.data],
-
           [analysis.total.problem.label, ...analysis.total.problem.data],
+
           [analysis.problem.calculation.label, ...analysis.problem.calculation.data],
           [analysis.problem.script.label, ...analysis.problem.script.data],
           [analysis.problem.layout_object.label, ...analysis.problem.layout_object.data],
-          ['x', ...analysis_number], */
+          ['x', ...analysis_number],
         ],
         type: 'bar',
         types: {
@@ -196,9 +205,10 @@ data:text/html,
       },
       axis: {
         y: {
+          show: true,
           label: {
             text: '# of Items',
-            position: 'outer-middle'
+            position: 'inner-middle'
           },
           tick: {
             format: d3.format(',.0f'),
@@ -209,7 +219,7 @@ data:text/html,
           show: true,
           label: {
             text: '# of Problems',
-            position: 'outer-middle'
+            position: 'inner-middle'
           },
           tick: {
             format: d3.format(',.0f'),
@@ -218,6 +228,7 @@ data:text/html,
           }
         },
         x: {
+          show: true,
           label: {
             text: 'Analysis #',
             position: 'center'
@@ -225,7 +236,7 @@ data:text/html,
           tick: {
             format: d3.format(','),
           },
-        }
+        },
       },
     });
 
@@ -235,7 +246,7 @@ data:text/html,
 
     hideProblems(0);
 
-    delayLoadData(700, 100);
+    delayLoadData(0, 0);
 
     /* ~~~~~~~~~~~~~~~ Functions ~~~~~~~~~~~~~~~ */
 
@@ -244,6 +255,15 @@ data:text/html,
         .append('button')
         .text('Group Data')
         .on('click', groupTotalData);
+
+      const button = d3.select('#options button');
+      if (button.text() === 'Group Data') {
+        chart.groups([analysis_total_labels.filter(x => x !== 'Total Problems')]);
+        button.text('Ungroup Data');
+      } else {
+        chart.groups([[]]);
+        button.text('Group Data');
+      }
 
       function groupTotalData() {
         const button = d3.select(this);
@@ -305,7 +325,7 @@ data:text/html,
       setTimeout(() => chart.hide(analysis.problem.layout_object.label), delayInterval * 3);
     }
 
-    function delayLoadData(duration = 700, delayInterval = 100) {
+    function delayLoadData(duration = 400, delayInterval = 100) {
       setTimeout(() => chart.flow({
         columns: [
           [analysis.total.item.label, ...analysis.total.item.data],

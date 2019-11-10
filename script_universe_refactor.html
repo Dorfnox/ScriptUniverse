@@ -572,9 +572,10 @@
 			return newSelection;
 		}
 
-		function updateLinks(newLinks) {
+    function updateLinks(newLinks) {
 			// Update, Enter, Exit pattern
-			var myLinks = svgLink.selectAll('.link').data(newLinks);
+      var myLinks = svgLink.selectAll('.link').data(newLinks);
+      console.log(myLinks);      
 			var linkEnter = myLinks.enter().append('line')
 				.attr('class', 'link')
 				.on('click', onLinkClick)
@@ -618,9 +619,9 @@
 				l.group = 0;
 			});
 
-            // BFS 'Virally-Infect' function that calculates all connected 'groups' and assigns them a group id
+      // BFS 'Virally-Infect' function that calculates all connected 'groups' and assigns them a group id
 			link.each(function(l) {
-                if (visited.has(l.index) === false) {
+        if (visited.has(l.index) === false) {
 					var queue = [];
 
 					visited.set(l.index, null);
@@ -657,7 +658,7 @@
 			// Add the groupId to unlinked nodes
 			node.each(function(d){ d.group = (d.group === 0) ? ++groupId : d.group });
 
-            // Clean map
+      // Clean map
 			delete visited;
 
 			// Other Attribute Initialization
@@ -749,7 +750,8 @@
 			svgLinkHead = svg.append('g').attr('transform', 'translate(0,0)'),
 			svgNode = svg.append('g').attr('transform', 'translate(0,0)');
 
-		// Creating Links (Created first so that lines appear underneath nodes themselves)
+    // Creating Links (Created first so that lines appear underneath nodes themselves)
+    console.log(links);
 		var link = updateLinks(links);
 
 		var linkHead = updateLinkHeads(links);
