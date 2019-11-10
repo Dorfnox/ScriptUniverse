@@ -1,0 +1,942 @@
+<html>
+  <head>
+    <title>Script Universe</title>
+
+    <!-- d3 5.7 -->
+    <script type="text/javascript" src="d3.js"></script>
+    <!-- ‡‡D3_LINK‡‡ -->
+
+    <!-- data.js -->
+    <script type="text/javascript" src="inspectorProData.js"></script>
+    <!-- ‡‡DATA_LINK‡‡ -->
+
+    <!-- fm.js -->
+    <script type="text/javascript" src="fm.js"></script>
+    <!-- ‡‡FM_LINK‡‡ -->
+
+    <style type="text/css">
+      #chart {
+        height: 100%;
+        width: 100%;
+      }
+
+      svg {
+        position: absolute;
+        z-index: 1;
+        width: 100%;
+        height: 100%;
+      }
+
+      g {
+        width: 100%;
+        height: 100%;
+      }
+
+      .node-group path {
+        stroke: #fff;
+        stroke-width: 2.5px;
+      }
+
+      body {
+        margin: 0;
+        overflow: hidden;
+        font: 12px arial;
+      }
+
+      #controls {
+        position: absolute;
+        display: flex;
+        justify-content: space-evenly;
+        align-items: center;
+        flex-direction: row;
+        flex-wrap: wrap;
+        padding: 5px;
+        width: 100%;
+        z-index: 2;
+        background: rgba(192, 255, 208, 0.123);
+        border-bottom: 0.5px solid rgba(128, 128, 128, 0.541);
+      }
+
+      /* ToolTip */
+      div #tooltip {
+        position: absolute;
+        text-align: center;
+        padding: 2px;
+        font: 12px sans-serif;
+        background: rgb(179, 209, 248);
+        border: 1px solid white;
+        padding: 5px;
+        border-radius: 6px;
+        pointer-events: none;
+        z-index: 3;
+      }
+
+      /* Search Controls */
+      .search-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        padding-left: 5px;
+        padding-right: 5px;
+        min-width: 40%;
+      }
+      .search-row {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding-top: 5px;
+        padding-bottom: 5px;
+        width: 100%;
+      }
+      #search-input {
+        height: 100%;
+        min-width: 40%;
+        width: 100%;
+      }
+      #search-button {
+        height: 100%;
+        margin-left: 2%;
+        border-radius: 3px;
+        background-color: rgb(213, 212, 255);
+      }
+      #clear-button {
+        height: 100%;
+        margin-left: 2%;
+        border-radius: 3px;
+        background-color: rgb(213, 212, 255);
+      }
+
+      /* Compatability Controls */
+      .compatibility-container {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        padding-left: 5px;
+        padding-right: 5px;
+      }
+      .compatibility-list {
+        height: 100%;
+      }
+
+      /* Force Controls */
+      .force-container {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+        align-items: center;
+        padding-left: 5px;
+        padding-right: 5px;
+        min-width: 40%;
+      }
+      .force-row {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-evenly;
+      }
+      .force-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: stretch;
+        padding-top: 5px;
+        padding-bottom: 5px;
+        width: 100%;
+      }
+
+      /* Shadow in requires different definitions for differect browsers */
+      .shadow {
+        -webkit-box-shadow: 3px 3px 8px 0px rgba(0, 0, 0, 0.15); /* Safari 4+ */
+        -moz-box-shadow: 3px 3px 8px 0px rgba(0, 0, 0, 0.15); /* Fx 5+ */
+        -o-box-shadow: 3px 3px 8px 0px rgba(0, 0, 0, 0.15); /* Opera 12+ */
+        box-shadow: 3px 3px 8px 0px rgba(0, 0, 0, 0.15); /* IE 10+, Fx 29+ */
+      }
+    </style>
+  </head>
+
+  <!-- Main HTML -->
+  <body>
+    <div id="chart">
+      <div id="controls">
+        <div class="search-container">
+          <div class="search-row">
+            <input
+              id="search-input"
+              type="text"
+              placeholder="...search all objects"
+            />
+            <button id="search-button" type="button">Search</button>
+            <button id="clear-button" type="button">Clear</button>
+          </div>
+          <div class="search-row">
+            <div>
+              <input
+                id="hover-grouping"
+                name="hovergrouping"
+                type="checkbox"
+                checked
+              />Hover displays closest nodes
+            </div>
+            <div class="compatibility-container">
+              Compatibility:
+              <select id="compatibility-list">
+                <option value="all">All</option>
+                <option disabled="disabled">----</option>
+                <option value="M">Macintosh</option>
+                <option value="W">Windows</option>
+                <option value="I">iOS</option>
+                <option value="S">Server</option>
+                <option value="D">WebDirect</option>
+                <option value="C">Custom Web Publishing</option> </select
+              ><br />
+            </div>
+          </div>
+        </div>
+        <div class="force-container">
+          Force Editor
+          <div class="force-row">
+            <div class="force-item">
+              Node Collision
+              <input
+                id="slider-collide"
+                type="range"
+                min="6"
+                max="36"
+                value="21"
+              />
+            </div>
+            <div class="force-item">
+              Mass Repulsion
+              <input
+                id="slider-manybody"
+                type="range"
+                min="-400"
+                max="400"
+                value="0"
+              />
+            </div>
+            <div class="force-item">
+              Link Distance
+              <input
+                id="slider-distance"
+                type="range"
+                min="-300"
+                max="300"
+                value="0"
+              />
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="tooltip"></div>
+    </div>
+  </body>
+
+  <script type="text/javascript">
+    (function() {
+      if (!json.nodes || json.nodes.length === 0) {
+        return;
+      }
+
+      // Map all required functionality to node type here.
+      // Implement these functions:
+      // -- attrPath, getIdentifier, getSize
+      const areaArray = [
+        // 0 | Script (Step) to Scripts
+        {
+          // attrPath: /* Circle */ 'M16,1.466C7.973,1.466,1.466,7.973,1.466,16c0,8.027,6.507,14.534,14.534,14.534c8.027,0,14.534-6.507,14.534-14.534C30.534,7.973,24.027,1.466,16,1.466z',
+          attrPath: /* Circle */ "M-5,5a10,10 0 1,0 20,0a10,10 0 1,0 -20,0z",
+          getIdentifier(node) {
+            return `${node.db}††script††${node.script_id}`;
+          },
+          getSize(node) {
+            return Math.min(Math.max(node.step_count, 10), 70); /* Between 10 and 70 */
+          }
+        },
+        // 1 | Layout to Script
+        {
+          attrPath: /* Upside-Down Triangle */ "M0,0h10l5,10z",
+          getIdentifier(node) {
+            return `${node.db}††layout††${node.layout_id}`;
+          },
+          getSize(node) {
+            return 40;
+          },
+        },
+        // 2 | Layout Object to Script
+        {
+          attrPath: /* Square */ "M0,0h10v10h-10z",
+          getIdentifier(node) {
+            return `${node.db}††layout_object††${node.layout_id}††${node.object_key}`;
+          },
+          getSize(node) {
+            return 30;
+          },
+        },
+        // 3 | Layout Object (Script Trigger) to Script
+        {
+          attrPath: /* Square (as well) */ "M0,0h10v10h-10z",
+          getIdentifier(node) {
+            return `${node.db}††layout_object_script_trigger††${node.layout_id}††${node.object_key}††${node.script_trigger_id}`;
+          },
+          getSize(node) {
+            return 30;
+          },
+        },
+        // 4 | Custom Menu Item to Script
+        {
+          attrPath:
+            /* Plus */ "m30.79918,10.34395l-10.31033,0l0,-10.31033l-10.30723,0l0,10.31033l-10.31187,0l0,10.30878l10.31187,0l0,10.31033l10.30723,0l0,-10.31033l10.31033,0l0,-10.30878z",
+          getIdentifier(node) {
+            return `${node.db}††custom_menu_item††${node.custom_menu_id}††${node.menu_item_number}`;
+          },
+          getSize(node) {
+            return 40;
+          },
+        },
+        // 5 | Database (Script Trigger) to Script
+        {
+          attrPath: /* Diamond */ "M15.5,0L31,15.5L15.5,30.5L0,15.5z",
+          getIdentifier(node) {
+            return `${node.db}††database_script_trigger††${node.script_trigger_id}`;
+          },
+          getSize(node) {
+            return 100;
+          },
+        }
+      ];
+
+      const linkTracker = new Map();
+      const nodeTracker = new Map(
+        json.nodes.map(n => [areaArray[n.map_idx].getIdentifier(n), n])
+      );
+      var nodes = json.nodes;
+      var links = json.links.filter(l => {
+        // If the target script is valid
+        if (l.target.split("††")[2] !== "0") {
+          // Second, check if the source and target both exist in the 'nodes'.
+          // This is required because it's possible to have a script trigger on
+          // layouts named '-', however those nodes are not collected for the script universe.
+          if (nodeTracker.has(l.source) && nodeTracker.has(l.target)) {
+            // Third, check link mapping to see if already added
+            var key = l.source + l.target;
+            if (linkTracker.has(key)) {
+              linkTracker.get(key).count++;
+            } else {
+              linkTracker.set(key, l);
+              return true;
+            }
+          }
+        }
+        return false;
+      });
+      delete nodeTracker;
+      delete linkTracker;
+
+      // Initializing filemaker functions -----------------------------------
+
+      var db = new FM().setFileName("InspectorPro").setIsHosted(false);
+
+      var fmScript = db.script("b d3 . link_to_item");
+
+      // Initializing variables ---------------------------------------------
+
+      var width = window.innerWidth,
+        height = window.innerHeight,
+        halfWidth = width / 2,
+        halfHeight = height / 2;
+
+      var settings = {
+        lastSearch: "",
+        linkStrokeWidth: 0.5,
+        dragActive: false,
+        dragging: false
+      };
+
+      // Init sizes & scale
+      for (var i = 0; i < nodes.length; ++i) {
+        nodes[i].size = areaArray[nodes[i].map_idx].getSize(nodes[i]);
+      }
+
+      var sizescale = d3
+        .scaleSqrt()
+        .domain([
+          d3.min(nodes, d => d.size),
+          d3.max(nodes, d => d.size)
+        ])
+        .range([0.3, 2.0]);
+
+      for (var i = 0; i < nodes.length; ++i) {
+        nodes[i].scale = Math.round(sizescale(nodes[i].size) * 100) / 100;
+      }
+
+      // Build database Map in order to choose colors
+      var databaseCount = 0;
+      const databaseMap = (function() {
+        var databaseMap = {};
+        for (var i = 0, num = 0; i < nodes.length; ++i) {
+          if (databaseMap[nodes[i].db] === undefined) {
+            databaseMap[nodes[i].db] = num;
+            num = (num + 1) % 10;
+            databaseCount += 1;
+          }
+        }
+        return databaseMap;
+      })();
+
+      // Init colors ----------------------------------------------------
+      function LightenDarkenColor(col, amt) {
+        col = col.substr(4, col.length - 5).split(', ');
+
+        var r = parseInt(col[0]) + amt;
+        r = r > 255 ? 255 : r < 0 ? 0 : r;
+
+        var g = parseInt(col[1]) + amt;
+        g = g > 255 ? 255 : g < 0 ? 0 : g;
+
+        var b = parseInt(col[2]) + amt;
+        b = b > 255 ? 255 : b < 0 ? 0 : b;
+
+        return `rgb(${r},${g},${b})`;
+      }
+      function LightenDarkenColorHex(col, amt) {
+        col = col.slice(1);
+
+        var num = parseInt(col, 16);
+
+        var r = (num >> 16) + amt;
+        if (r > 255) r = 255;
+        else if (r < 0) r = 0;
+
+        var b = ((num >> 8) & 0x00FF) + amt;
+        if (b > 255) b = 255;
+        else if (b < 0) b = 0;
+
+        var g = (num & 0x0000FF) + amt;
+        if (g > 255) g = 255;
+        else if (g < 0) g = 0;
+
+        return `#${(g | (b << 8) | (r << 16)).toString(16)}`;
+      }
+      const color = d3.schemeCategory10;
+      // lighten the color scheme a little
+      for (var i = 0; i < color.length; i++) {
+        color[i] = LightenDarkenColorHex(color[i], 40);
+      }
+      // Update link colors
+      for (var i = 0; i < links.length; ++i) {
+        links[i].color = links[i].color || LightenDarkenColorHex(color[databaseMap[links[i].source.split('††')[0]]], 40);
+      }
+      // Update node colors
+      for (var i = 0; i < nodes.length; ++i) {
+        nodes[i].color = nodes[i].color || color[databaseMap[nodes[i].db]];
+      }
+
+      // Dom event initialization -----------------------------------------------------------------------------------
+
+      // search functionality
+      d3.select("#search-input").on("keyup", function() {
+        var input = d3.event.srcElement.value;
+        if (d3.event.keyCode === 13 /* Return Key */) inputSearch(input);
+      });
+      d3.select("#search-button").on("click", function() {
+        var input = d3.select("#search-input").property("value");
+        inputSearch(input);
+      });
+      d3.select("#clear-button").on("click", function() {
+        d3.select("#search-input").property("value", "");
+        inputSearch("");
+      });
+
+      // slider functionality
+      d3.select("#slider-collide").on("input", function() {
+        const value = this.value;
+        simulation.force(
+          "collide",
+          d3.forceCollide(function(d) {
+            return sizescale(d.size) * value;
+          })
+        );
+        simulation.alpha(alphaTarget / 3.5).restart();
+      });
+      d3.select("#slider-manybody").on("input", function() {
+        const value = -400 - this.value;
+        simulation.force("manyBody", d3.forceManyBody().strength(value));
+        simulation.alpha(alphaTarget / 3.5).restart();
+      });
+      d3.select("#slider-distance").on("input", function() {
+        const value = this.value;
+        simulation.force("link", d3.forceLink(links).distance(value));
+        simulation.alpha(alphaTarget / 3.5).restart();
+      });
+
+      // Initializing forces ----------------------------------------------------------------------------------------
+
+      var simulation = d3.forceSimulation(nodes), // Adds nodes to Force simulation
+        alphaTarget = 0.3, // That 'nudge' when a force is applied
+        strength = 0.3, // The 'Strength of different forces
+        forceX = d3 // Pushes towards width divided by 2
+          .forceX(function(d) {
+            return halfWidth;
+          })
+          .strength(strength),
+        forceY = d3 // Pushes towards height divided by 2
+          .forceY(function(d) {
+            return halfHeight;
+          })
+          .strength(strength),
+        forceCollide = d3.forceCollide(function(d) { // Prevents objects from colliding
+          return sizescale(d.size) * 16; // arbitrarily multiply
+        }),
+        forceLink = d3
+          .forceLink(links)
+          .id(n => areaArray[n.map_idx].getIdentifier(n))
+          .distance(0)
+          .strength(strength);
+
+      forceManyBody = d3.forceManyBody().strength(-200); // Force 'betweeen' objects
+
+      simulation // Builds Initial Forces onto the simulation
+        .force("x", forceX)
+        .force("y", forceY)
+        .force("collide", forceCollide)
+        .force("link", forceLink)
+        .force("manyBody", forceManyBody);
+
+      // EVENT FUNCTION DECLARATIONS
+      // ------------------------------------------------------------------------------------------------------------
+
+      function inputSearch(input) {
+        var matchingNodes = null,
+          matchingLinks = null;
+
+        input = input.toLowerCase();
+
+        // NEW Search
+        if (input.length !== 0 && settings.lastSearch !== input) {
+          // search for all nodes where the 'name' matches the input.
+          matchingNodes = nodes.filter(function(d) {
+            return d.name.toLowerCase().includes(input);
+          });
+          // search for all links that have both a source and target in the matchingNodes
+          matchingLinks = links.filter(function(l) {
+            var matchingSource = matchingNodes.filter(function(m) {
+              return l.source.id === m.id;
+            });
+            var matchingTarget = matchingNodes.filter(function(m) {
+              return l.target.id === m.id;
+            });
+
+            if (matchingSource.length !== 0 && matchingTarget.length !== 0)
+              return true;
+            return false;
+          });
+        }
+        // CLEAR Search
+        else if (input.length === 0 && settings.lastSearch !== "") {
+          matchingNodes = nodes;
+          matchingLinks = links;
+        }
+        // DUPLICATE search
+        else return;
+
+        // update the node and link selections
+        link = updateLinks(matchingLinks);
+        linkHead = updateLinkHeads(matchingLinks);
+        node = updateNodes(matchingNodes);
+        updateGroups();
+        updateSimulation(matchingNodes);
+
+        // Update global last search
+        settings.lastSearch = input;
+      }
+
+      function onLinkClick(data) {
+        console.log("LINK d3.select(this)\n\n", d3.select(this));
+      }
+
+      function onLinkOver(data) {
+        simulation.stop();
+        d3.select(this).attr("stroke-width", settings.linkStrokeWidth * 5.0);
+        tooltip
+          .html(
+            "Source<br/>" +
+              data.source.name +
+              "<br/>" +
+              "Target<br/>" +
+              data.target.name +
+              "<br/>"
+          )
+          .style("left", d3.event.pageX + 25 + "px")
+          .style("top", d3.event.pageY - 50 + "px")
+          .transition()
+          .duration(200)
+          .style("opacity", 0.9);
+      }
+
+      function onLinkOut(data) {
+        simulation.restart();
+        d3.select(this).attr("stroke-width", settings.linkStrokeWidth);
+        tooltip
+          .transition()
+          .duration(200)
+          .style("opacity", 0);
+      }
+
+      function onNodeClick(data) {
+        console.log("NODE data\n", data);
+
+        // Add fmScript to script-list-item
+        fmScript.addVariable({ node: data });
+        fmScript.run();
+      }
+
+      function onNodeOver(data) {
+        if (settings.dragActive === true) return;
+
+        // Freeze simulation
+        simulation.stop();
+
+        // Dim all things
+        node.attr("opacity", 0.25);
+        link.attr("opacity", 0.25);
+        linkHead.attr("opacity", 0.25);
+
+        // Undim self
+        d3.select(this).attr("opacity", 1.0);
+
+        // Undim nodes, links, and linkHeads
+        if (d3.select("#hover-grouping").property("checked")) {
+          // Undim by neighboring nodes
+          for (var i = 0; i < data.linkArray.length; ++i) {
+            node
+              .filter(function(n) {
+                return (
+                  n.id === data.linkArray[i].source.id ||
+                  n.id === data.linkArray[i].target.id
+                );
+              })
+              .attr("opacity", 1.0);
+          }
+          link
+            .filter(function(l) {
+              return l.source.id === data.id || l.target.id === data.id;
+            })
+            .attr("opacity", 1.0)
+            .attr("stroke-width", settings.linkStrokeWidth * 3.0);
+          linkHead
+            .filter(function(lh) {
+              return lh.source.id === data.id || lh.target.id === data.id;
+            })
+            .attr("opacity", 1.0)
+            .attr("stroke-width", settings.linkStrokeWidth * 8.0);
+        } else {
+          // Undim by group ID
+          node.each(function(n) {
+            if (n.group !== data.group) d3.select(this).attr("opacity", 0.25);
+          });
+          link.each(function(l) {
+            if (l.group !== data.group) d3.select(this).attr("opacity", 0.25);
+          });
+          linkHead.each(function(lh) {
+            if (lh.group !== data.group) d3.select(this).attr("opacity", 0.25);
+          });
+        }
+
+        // show tooltip
+        var warning = data.E ? "⚠️ " : "";
+        tooltip
+          .html(warning + data.object + "<br/>" + data.name + "<br/>")
+          .style("left", d3.event.pageX + 25 + "px")
+          .style("top", d3.event.pageY - 50 + "px")
+          .transition()
+          .duration(200)
+          .style("opacity", 0.9);
+      }
+
+      function onNodeOut(data) {
+        if (settings.dragActive === true) return;
+
+        simulation.restart();
+
+        // Undim all nodes, links, and linkHeads
+        node.attr("opacity", 1.0);
+        link
+          .attr("opacity", 1.0)
+          .attr("stroke-width", settings.linkStrokeWidth);
+        linkHead
+          .attr("opacity", 1.0)
+          .attr("stroke-width", settings.linkStrokeWidth * 3.0);
+
+        tooltip
+          .transition()
+          .duration(200)
+          .style("opacity", 0);
+      }
+
+      // Node Drag events
+      function dragStart(d) {
+        settings.dragActive = true;
+        d.fx = d3.event.x; // fixed 'overwrites' normal x and y positions
+        d.fy = d3.event.y;
+      }
+
+      function dragged(d) {
+        simulation.alpha(alphaTarget / 2.0).restart();
+        d.fx = d3.event.x;
+        d.fy = d3.event.y;
+        if (settings.dragging === false) {
+          node.attr("opacity", 1.0); // reset all node and link opacities
+          link.attr("opacity", 1.0);
+          linkHead.attr("opacity", 1.0);
+        }
+        settings.dragging = true;
+      }
+
+      function dragEnd(d) {
+        if (settings.dragging === true) {
+          // Only restart the animation if the node was being dragged
+          simulation
+            .alpha(alphaTarget / 2.0)
+            .alphaTarget(0)
+            .restart();
+        }
+        settings.dragActive = false;
+        settings.dragging = false;
+        d.fx = null;
+        d.fy = null;
+      }
+
+      // UPDATE FUNCTION DECLARATIONS
+      // ------------------------------------------------------------------------------------------------------------
+
+      function updateNodes(newNodes) {
+        // Update, Enter, Exit pattern
+        var myNodes = svgNode.selectAll(".node").data(newNodes);
+        var nodeEnter = myNodes
+          .enter()
+          .append("path")
+          .attr("d", n => areaArray[n.map_idx].attrPath)
+          .attr("class", "node")
+          .on('click', onNodeClick)
+          .on('mouseover', onNodeOver)
+          .on('mouseout', onNodeOut)
+          .call(
+            d3
+              .drag()
+              .on("start", dragStart)
+              .on("drag", dragged)
+              .on("end", dragEnd)
+          );
+        myNodes.exit().remove();
+        myNodes = nodeEnter.merge(myNodes);
+        return myNodes;
+      }
+
+      function updateLinks(newLinks) {
+        // Update, Enter, Exit pattern
+        var myLinks = svgLink.selectAll(".link").data(newLinks);
+        var linkEnter = myLinks
+          .enter()
+          .append("line")
+          .attr("class", "link")
+        .on('click', onLinkClick)
+        .on('mouseover', onLinkOver)
+        .on('mouseout', onLinkOut);
+        myLinks.exit().remove();
+        myLinks = linkEnter.merge(myLinks);
+        return myLinks;
+      }
+
+      function updateLinkHeads(newLinks) {
+        var myLinks = svgLinkHead.selectAll(".linkHead").data(newLinks);
+        var linkEnter = myLinks
+          .enter()
+          .append("line")
+          .attr("class", "linkHead")
+          .on("click", onLinkClick);
+        myLinks.exit().remove();
+        myLinks = linkEnter.merge(myLinks);
+        return myLinks;
+      }
+
+      // Main update function that sorts all new nodes and links into Groups.
+      function updateGroups() {
+        var visited = new Map(),
+            groupId = 0;
+
+        // Clear the old link-arrays from the nodes
+        node.each(d => {
+          d.linkArray = [];
+        });
+
+        // Build new link-arrays for the source and target nodes
+        link.each(l => {
+          l.source.linkArray.push(l);
+          l.target.linkArray.push(l);
+        });
+
+        // Initializing the nodes and links with group of 0 information
+        node.each(d => {
+          d.group = 0;
+        });
+        link.each(l => {
+          l.group = 0;
+        });
+
+        // BFS 'Virally-Infect' function that calculates all connected 'groups' and assigns them a group id
+        link.each(function(l) {
+          if (visited.has(l.index) === false) {
+            var queue = [];
+
+            visited.set(l.index, null);
+
+            queue.push(l);
+
+            ++groupId;
+
+            while (queue.length > 0) {
+              // dequeue the next item in the queue
+              l = queue.shift();
+
+              // Set ID's --- MOST IMPORTANT PART
+              l.group = groupId;
+              l.source.group = groupId;
+              l.target.group = groupId;
+
+              for (var i = 0; i < l.source.linkArray.length; ++i) {
+                if (
+                  l.source.linkArray[i].group !== groupId &&
+                  visited.has(l.source.linkArray[i].index) === false
+                ) {
+                  visited.set(l.source.linkArray[i].index, null);
+                  queue.push(l.source.linkArray[i]);
+                }
+              }
+              for (var i = 0; i < l.target.linkArray.length; ++i) {
+                if (
+                  l.target.linkArray[i].group !== groupId &&
+                  visited.has(l.target.linkArray[i].index) === false
+                ) {
+                  visited.set(l.target.linkArray[i].index, null);
+                  queue.push(l.target.linkArray[i]);
+                }
+              }
+            }
+          }
+        });
+
+        // Add the groupId to unlinked nodes
+        node.each(d => {
+          if (d.group === 0) d.group = ++groupId;
+        });
+
+        // Clean map
+        delete visited;
+
+        // Other Attribute Initialization
+        link
+          .attr("stroke", l => l.color)
+          .attr("stroke-width", settings.linkStrokeWidth);
+
+        linkHead.each(function(lh, i) {
+          d3.select(this)
+            .attr("stroke", "#778899")
+            .attr("stroke-width", settings.linkStrokeWidth * 3.0);
+          lh.group = link.data()[i].group;
+        });
+
+        node.each(function(d) {
+          d3.select(this)
+            .attr("fill", d => d.color)
+            .attr("stroke", d => d.E ? "red" : "white")
+            .attr("stroke-width", 0.75);
+        });
+      }
+
+      // SIMULATION FUNCTION DECLARATIONS
+      // ------------------------------------------------------------------------------------------------------------
+
+      // restarts simulation with given nodeSet
+      function updateSimulation(nodeSet) {
+        simulation.nodes(nodeSet).on("tick", ticked);
+        simulation
+          .alpha(alphaTarget)
+          .alphaTarget(0)
+          .restart();
+      }
+
+      var lhFactor = null;
+      var lhAngle = null;
+      function ticked() {
+        // Simulation is like a clock - it ticks, it ticks, it ticks
+
+        link // move each link relative to it's source node's position
+          .attr("x1", l => l.source.x)
+          .attr("x2", l => l.target.x)
+          .attr("y1", l => l.source.y)
+          .attr("y2", l => l.target.y);
+
+        linkHead // move each 'arrow head' line to the target end of the node
+          .each(function(lh) {
+            lhFactor = 5 + 15.5 * lh.target.scale;
+            lhAngle =
+              Math.atan2(lh.target.x - lh.source.x, lh.target.y - lh.source.y) +
+              Math.PI;
+            d3.select(this)
+              .attr("x1", lh.target.x)
+              .attr("x2", lh.target.x + lhFactor * Math.sin(lhAngle))
+              .attr("y1", lh.target.y)
+              .attr("y2", lh.target.y + lhFactor * Math.cos(lhAngle));
+          });
+
+        node // Move each node acording to the simulation
+          .attr("transform", n => `translate(${n.x - n.scale * 5.1},${n.y - n.scale * 5.1}) scale(${n.scale})`);
+      }
+
+      // SVG CONTAINER, NODE and LINK INITIALIZATION
+      // ------------------------------------------------------------------------------------------------------------
+
+      // Defining selection elements
+      var tooltip = d3.select("#tooltip").style("opacity", 0),
+        scriptListContainer = d3.select("#script-list-container"),
+        scriptTracker = d3.select("#script-tracker");
+
+      // Creating the svg container
+      var svg = d3
+        .select("#chart")
+        .append("svg")
+        .attr("width", width)
+        .attr("height", height)
+        .call(
+          d3.zoom().on("zoom", function(d) {
+            svgLink.attr("transform", d3.event.transform);
+            svgLinkHead.attr("transform", d3.event.transform);
+            svgNode.attr("transform", d3.event.transform);
+          })
+        );
+
+      var svgLink = svg.append("g").attr("transform", "translate(0,0)"),
+        svgLinkHead = svg.append("g").attr("transform", "translate(0,0)"),
+        svgNode = svg.append("g").attr("transform", "translate(0,0)");
+
+      // Creating Links (Created first so that lines appear underneath nodes themselves)
+      var link = updateLinks(links);
+
+      var linkHead = updateLinkHeads(links);
+
+      var node = updateNodes(nodes);
+
+      // Call to update the inital groups
+      updateGroups();
+
+      // Call to update the simulation with initial dataset
+      updateSimulation(nodes);
+    })();
+  </script>
+</html>
+
+<!-- Built by Brendan Pierce 😎 -->
